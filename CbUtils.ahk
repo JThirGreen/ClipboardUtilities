@@ -2,11 +2,11 @@
 ;===========================================================#
 ;                      AutoHotKey Init                      #
 ;===========================================================#
+#Include Utilities\General.ahk
+#Include Utilities\Text.ahk
 #Include Utilities\XML.ahk
 #Include ContextMenu.ahk
 #Include CbManager.ahk
-#Include Utilities\General.ahk
-#Include Utilities\Text.ahk
 
 A_HotkeyInterval := 1000 ; Milliseconds
 A_MaxHotkeysPerInterval := 200
@@ -17,12 +17,21 @@ FileInstall("Images\tray.png", "Images\tray.png", 1)
 FileInstall("Images\XML.png", "Images\XML.png", 1)
 
 TraySetIcon("Images\tray.png")
-;===========================================================#
-;                     Global Variables                      #
-;===========================================================#
-; Global variables for holding debug values
-; Not to be used otherwise
+
+/**
+ * Global variable used exclusively for debugging
+ * @type {Any}
+ */
 global tempGlobal := ""
 
+/**
+ * Global variable to store mouse X-coord
+ * @type {Number}
+ */
 global mPosX := 0
+
+/**
+ * Global variable to store mouse Y-coord
+ * @type {Number}
+ */
 global mPosY := 0

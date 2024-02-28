@@ -1,23 +1,55 @@
 #Requires AutoHotkey v2.0
-;===========================================================#
-;                       General Tools                       #
-;===========================================================#
-;-----------------------------+
-;    variable definitions     |
-;-----------------------------+
-; Default static variables
-global spacesToTabs := 4
-global menuTextWidth := 40
 
+/**
+ * Stores text content of clipboard when {@link InitClipboard()} is called
+ * @type {String}
+ */
 global copiedText := ""
-global selectedText := ""
-global selectedClip := ""
 
-;-----------------------------+
-;    function definitions     |
-;-----------------------------+
+/**
+ * Stores full content of clipboard when {@link InitClipboard()} is called
+ * @type {ClipboardAll}
+ */
+global copiedClip := {}
+
+/**
+ * Stores text selected by user when requested by {@link GetSelectedText()} or when {@link InitClipboard()} is called
+ * @type {String}
+ */
+global selectedText := ""
+
+/**
+ * Stores full content selected by user when requested by {@link GetSelectedText()} or when {@link InitClipboard()} is called
+ * @type {ClipboardAll}
+ */
+global selectedClip := {}
+
+class StringType {
+	/**
+	 * Type of data contained in string
+	 * @type {'empty'|'integer'|'float'|'number'|'digit'|'xdigit'|'upper'|'lower'|'alpha'|'alnum'|'space'|'time'}
+	 */
+	isType := ""
+	/**
+	 * Type of data contained in string
+	 * @type {true|false}
+	 */
+	isNumber := false
+	/**
+	 * Type (simplified) of data contained in string
+	 * @type {'number'|'hex'|'string'|'time'}
+	 */
+	type := "string"
+}
+
+/**
+ * Evaluate datatype from string based on its contents
+ * @param {String} var String to evaluate
+ * @returns {StringType}
+ */
 GetDataType(var) {
-	varType := {type:"string", isNumber:false, isType:""}
+	/** @type {StringType} */
+	varType := StringType()
 	if (StrLen(var) < 1) {
 		varType.isType := "empty"
 	}
@@ -65,12 +97,20 @@ GetDataType(var) {
 	return varType
 }
 
+/**
+ * Return leading characters matching charArray from txt
+ * @param {String} txt String to parse
+ * @param {Array} charArray Array of characters to match against
+ * @returns {String} Substring of leading characters matching {charArray}
+ */
 SubstringLeading(txt, charArray) {
+	/** @type {Map} */
 	charMap := Map()
 	Loop charArray.Length
 	{
 		charMap[charArray[A_Index]] := true
 	}
+	/** @type {String} */
 	leadingChars := ""
 	Loop Parse, txt
 	{
@@ -84,8 +124,19 @@ SubstringLeading(txt, charArray) {
 	return leadingChars
 }
 
+/**
+ * Use clipboard to get currently highlighted or selected text. Populates {@link selectedText} and {@link selectedClip}.
+ * @param {true|false} restoreClipboard Flag to control whether or not to restore clipboard before returning
+ * 
+ * true: Restore clipboard to state from before this function was called
+ * 
+ * false: Keeps {@link selectedClip} value in the clipboard
+ * 
+ * @returns {String} Highlighted or selected text found and stored in {@link selectedText}
+ */
 GetSelectedText(restoreClipboard := true) {
 	global selectedText, selectedClip
+	/** @type {ClipboardAll} */
 	cbTemp := ClipboardAll()
 	
 	A_Clipboard := ""
@@ -100,7 +151,12 @@ GetSelectedText(restoreClipboard := true) {
 	return selectedText
 }
 
+/**
+ * Temporarily uses clipboard to paste value of {str}.
+ * @param str
+ */
 PasteValue(str) {
+	/** @type {ClipboardAll} */
 	cbTemp := ClipboardAll()
 	
 	A_Clipboard := str
@@ -110,9 +166,23 @@ PasteValue(str) {
 	return
 }
 
+/**
+ * Populates {@link copiedText}, {@link selectedText}, and {@link selectedClip}
+ * 
+ * {@link copiedText} populated with current text contained in clipboard
+ * 
+ * {@link selectedText} and {@link selectedClip} populated with user selected content via {@link GetSelectedText()}
+ * 
+ * @param {true|false} restoreClipboard
+ * 
+ * true: Restore clipboard to state from before {@link GetSelectedText()} was called
+ * 
+ * false: Keeps {@link selectedClip} value in the clipboard
+ */
 InitClipboard(restoreClipboard := true) {
 	global copiedText, selectedText, copiedTitle, selectedTitle
 	copiedText := A_Clipboard
+	copiedClip := ClipboardAll()
 	
 	copiedTitlePrev := copiedTitle
 	copiedTitle := PasteTitle
@@ -121,7 +191,7 @@ InitClipboard(restoreClipboard := true) {
 	}
 	CustomContextMenu.Rename(copiedTitlePrev, copiedTitle)
 	
-	selectedText := GetSelectedText(restoreClipboard)
+	GetSelectedText(restoreClipboard)
 	selectedTitlePrev := selectedTitle
 	selectedTitle := SelectTitle
 	if (selectedText != "") {
@@ -130,25 +200,15 @@ InitClipboard(restoreClipboard := true) {
 	CustomContextMenu.Rename(selectedTitlePrev, selectedTitle)
 }
 
-CopyClipboard(forceMode := "") {
-	global copiedText, selectedText
-	mode := forceMode != "" ? forceMode : inputMode
-	switch mode {
-		case "paste":
-		case "","select":
-			if (selectedText != "") {
-				A_Clipboard := selectedText
-			}
-			else {
-				A_Clipboard := ""
-				Send("^c")
-				Errorlevel := !ClipWait(1)
-			}
-		default:
-	}
-	return copiedText
-}
 
+/**
+ * Paste contents of clipboard if not empty or if {forced=true}
+ * @param {true|false} forced
+ * 
+ * true: Paste from clipboard regardless of content
+ * 
+ * false: Paste from clipboard only if it's not empty
+ */
 PasteClipboard(forced := false) {
 	if (forced || A_Clipboard != "" || ClipboardAll().Size > 0) {
 		Send("^v")
@@ -157,85 +217,20 @@ PasteClipboard(forced := false) {
 	return
 }
 
+/**
+ * Trims and formats string {val} for use in menus
+ * @param {String} val Text to trim
+ * @returns {String} Trimmed text
+ */
 MenuItemTextTrim(val) {
-	if (IsObject(val))
-		return "binary data"
-	
-	global spacesToTabs, menuTextWidth
-	leadingSpaceCount := 0
-	charCount := 0
-	lineCount := 1
-	selectionText := ""
-	prevChar := ""
-	textLength := StrLen(val)
-	trimMode := (textLength > (menuTextWidth * 1.5)) ? "middle" : "end"
-	trimIndex := menuTextWidth - 1
-	trimIndex := (trimMode = "middle") ? (trimIndex//2) : trimIndex
-	loopSkipToIndex := 0
-	
-	Loop Parse, val
-	{
-		if (A_LoopField = "`n") {
-			lineCount++
-		}
-		if (loopSkipToIndex > A_Index) {
-			continue
-		}
-		if (charCount = 0 && A_LoopField ~= "\s")
-			switch (A_LoopField) {
-				case "`t":
-					leadingSpaceCount += spacesToTabs
-				case " ":
-					leadingSpaceCount++
-				default:
-			}
-		else {
-			if (charCount = 0 && leadingSpaceCount > 0) {
-				tabEstimate := leadingSpaceCount//spacesToTabs
-				remainderSpaces := Mod(leadingSpaceCount, spacesToTabs)
-				spacingFormat := ""
-				
-				; Chr(0x2192) = rightwards arrow (→)
-				Loop tabEstimate {
-					spacingFormat .= Chr(0x2192)
-				}
-				if (remainderSpaces > 0)
-					spacingFormat .= "{:" . remainderSpaces . "}"
-				if (StrLen(spacingFormat) > 0)
-					selectionText .= Format(spacingFormat, "")
-			}
-			switch (A_LoopField) {
-				case "`r":
-				case "`n":
-					; Chr(0x21B5) = return symbol (⏎)
-					selectionText .= Chr(0x23CE)
-				case "`t":
-					; Chr(0x2192) = rightwards arrow (→)
-					selectionText .= Chr(0x2192)
-				case "&":
-					; Chr(0x2192) = rightwards arrow (→)
-					selectionText .= "&&"
-				default:
-					selectionText .= A_LoopField
-			}
-			charCount++
-		}
-		if (loopSkipToIndex = 0 && charCount >= trimIndex) {
-			selectionText .= "…"
-			if (trimMode = "middle") {
-				loopSkipToIndex := (StrLen(val) + trimIndex - menuTextWidth)
-			}
-			else {
-				break
-			}
-		}
-		prevChar := A_LoopField
-	}
-	if (lineCount > 1)
-		selectionText .= "[" . lineCount . " lines]"
-	return selectionText
+	return MenuText(val).Text
 }
 
+/**
+ * Displays string {txt} as tooltip for {delay} period of time in milliseconds
+ * @param {String} txt String to display as tooltip
+ * @param {Integer} delay number of milliseconds to display tooltip for
+ */
 AddToolTip(txt, delay := 2000) {
 	ToolTip(txt)
 	delay := 0 - Abs(delay)
@@ -243,14 +238,18 @@ AddToolTip(txt, delay := 2000) {
 		SetTimer(RemoveToolTip, delay)
 }
 
+/**
+ * Remove tooltip if currently displayed
+ */
 RemoveToolTip() {
 	ToolTip()
 }
 
+/**
+ * Takes comma-separated string {csvStr} and returns it as an array
+ * @param {String} csvStr comma-separated string
+ * @returns {Array}
+ */
 CSV2Array(csvStr) {
 	return [StrSplit(csvStr, ",")]
 }
-
-;===========================================================#
-;                     End General Tools                     #
-;===========================================================#

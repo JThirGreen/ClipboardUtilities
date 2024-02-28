@@ -64,7 +64,7 @@ ReloadCustomClipboardMenu()
 			CustomClipboardMenu.Add()
 		funcInstance := SelectCustomClipboardIndex.bind(A_Index, true)
 		menuText := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
-		menuText .= ": " . cbBuffer[A_Index].title . Chr(160)
+		menuText .= ": " . cbBuffer[A_Index].title . Chr(0xA0)
 		
 		if (startIndex <= A_Index && A_Index < endIndex) {
 			CustomClipboardMenu.Add(menuText, funcInstance)
@@ -94,20 +94,32 @@ ReloadCustomClipboardMenu()
 ;      class definitions      |
 ;-----------------------------+
 class CustomClip {
+	type := ""
+
+	value := ""
+
+	name := ""
+
+	title := ""
+
 	__New(content, datatype := "text") {
 		this.type := datatype
 		this.value := content
+		/** @type {MenuText} */
+		clipMenuText := {}
 		if (datatype = "text")
-			this.title := MenuItemTextTrim(content)
+			clipMenuText := MenuText(content)
 		else
-			this.title := MenuItemTextTrim(datatype . " data")
+			clipMenuText := MenuText(datatype . " data")
+		this.name := clipMenuText.Value
+		this.title := clipMenuText.Text
 	}
 	
 	toString() {
 		if (this.type = "text")
 			return this.value
 		else
-			return this.title
+			return this.name
 	}
 	
 	paste() {
@@ -115,7 +127,6 @@ class CustomClip {
 		if (this.type = "binary") {
 			cbTemp := ClipboardAll()
 			A_Clipboard := ClipboardAll(this.value)
-			;MsgBox("Attempted to paste " . this.title)
 			
 			Send("^v")
 			;PasteClipboard(true)
@@ -454,7 +465,7 @@ ShowCustomClipboardToolTip() {
 		tipText .= (A_Index = cbBufferIndex) ? "   >>" : ">>   "
 		tipText .= "|"
 		
-		tipText .= MenuItemTextTrim(cbBuffer[A_Index].title) . "`r`n"
+		tipText .= cbBuffer[A_Index].name . "`r`n"
 	}
 	
 	AddToolTip(tipText, 5000)

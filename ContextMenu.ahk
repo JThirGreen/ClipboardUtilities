@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#Include Utilities\General.ahk
 ;===========================================================#
 ;                    Custom Context Menu                    #
 ;===========================================================#
@@ -6,17 +7,230 @@
 ;    variable definitions     |
 ;-----------------------------+
 ; Default static variables
+/**
+ * Number of spaces to consider equal to a tab when applicable
+ * @type {String}
+ */
+global spacesToTabs := 4
+
+/**
+ * Maximum character length for dynamic menu text
+ * @type {Integer}
+ */
+global menuTextWidth := 40
+
 global PasteTitle := "Paste Mode"
 global SelectTitle := "Select Mode"
-
-; input mode
-;	"paste": Perform transformations on clipboard content and paste
-;	"select": Perform transformations on highlighted text
+/**
+ * Current input mode
+ * 
+ * 'paste': Perform transformations on clipboard content and paste
+ * 
+ * 'select': Perform transformations on highlighted text
+ * @type {String}
+ */
 global inputMode := ""
 
 global copiedTitle := PasteTitle
 global selectedTitle := SelectTitle
 
+/**
+ * Matrix of string components
+ */
+class MenuText {
+	/**
+	 * Location trim will occur if trimming is necessary
+	 * @type {''|'middle'|'end'}
+	 */
+	trimMode := ""
+
+	/**
+	 * String components before trim point
+	 * @type {Array}
+	 */
+	preTrimComponents := []
+
+	/**
+	 * String components after trim point
+	 * @type {Array}
+	 */
+	postTrimComponents := []
+
+	/**
+	 * Total length of the original string
+	 * @type {Integer}
+	 */
+	textLength := 0
+
+	/**
+	 * Number of lines found in string
+	 * @type {Integer}
+	 */
+	lineCount := 0
+
+	/**
+	 * Number of leading spaces found in string
+	 * 
+	 * s = space characters or Chr(0x20)
+	 * 
+	 * t = tab characters or Chr(0x09)
+	 * 
+	 * total = (s + (t * {@link spacesToTabs}))
+	 * @type {Integer}
+	 */
+	leadingSpacesCount := 0
+
+	/** @type {String} */
+	Value {
+		get {
+			global menuTextWidth
+			/** @type {String} */
+			str := MenuText.array2str(this.preTrimComponents)
+			if (this.lineCount > 1) {
+				str := "[" . this.lineCount . " lines]" . str
+			}
+
+			charCounter := "(" . Format("{:d}",this.textLength) . ")"
+			
+			switch(this.trimMode) {
+				case "middle":
+					trimIndex := (menuTextWidth // 2) - 1
+					str := SubStr(str, 1, trimIndex) . "…"
+					str .= SubStr(MenuText.array2str(this.postTrimComponents) . charCounter, (1 + trimIndex - menuTextWidth))
+				case "end":
+					trimIndex := menuTextWidth - StrLen(charCounter)
+					str := SubStr(str, 1, trimIndex - 1) . "…" . charCounter
+			}
+			return str
+		}
+	}
+
+	/** @type {String} */
+	Text => StrReplace(this.Value, "&", "&&")
+
+	/**
+	 * 
+	 * @param {String} val
+	 * @returns {String} 
+	 */
+	__New(val) {
+		if (IsObject(val))
+			preTrimComponents  := ["[binary data]"]
+
+		global spacesToTabs, menuTextWidth
+		this.leadingSpacesCount := 0
+		/** @type {Integer} */
+		charCount := 0
+		/** @type {String} */
+		currChar := "", prevChar := ""
+		this.textLength := StrLen(val)
+		trimIndex := (menuTextWidth // 2) - 1
+		loopSkipToIndex := 0
+
+		this.lineCount := (this.textLength > 0) ? 1 : 0
+		
+		Loop Parse, val
+		{
+			if (A_LoopField = "`n") {
+				this.lineCount++
+			}
+			if (loopSkipToIndex > A_Index) {
+				continue
+			}
+			if (charCount = 0 && A_LoopField ~= "\s")
+				switch (A_LoopField) {
+					case "`t":
+						this.leadingSpacesCount += spacesToTabs
+					case " ":
+						this.leadingSpacesCount++
+					default:
+				}
+			else {
+				if (charCount = 0 && this.leadingSpacesCount > 0) {
+					this.preTrimComponents := StrSplit(MenuText.TranslateSpaces(this.leadingSpacesCount))
+				}
+				currChar := MenuText.TranslateCharacter(A_LoopField)
+
+				if (charCount <= menuTextWidth)
+					this.preTrimComponents.Push(currChar)
+				else if (loopSkipToIndex > 0)
+					this.postTrimComponents.Push(currChar)
+
+				charCount++
+			}
+			if (loopSkipToIndex = 0 && charCount > menuTextWidth) {
+				this.trimMode := ((this.textLength - A_Index) > trimIndex) ? "middle" : "end"
+				if (this.trimMode = "middle") {
+					loopSkipToIndex := (this.textLength + trimIndex - menuTextWidth)
+				}
+				else {
+					break
+				}
+			}
+			prevChar := A_LoopField
+		}
+		if (charCount <= menuTextWidth)
+			this.trimMode := ""
+	}
+
+	/**
+	 * Takes a character count of spaces and translates them to symbols
+	 * 
+	 * Tabs are estimated as a group of space characters defined by {@link spacesToTabs} and ar displayed as rightwards arrow (→) or Chr(0x2192)
+	 * 
+	 * Remaining spaces not divisible by {@link spacesToTabs} are simply displayed as spaces or Chr(0x20)
+	 * @param {Integer} spacingCount
+	 * @returns {String}
+	 */
+	static TranslateSpaces(spacingCount) {
+		tabEstimate := spacingCount//spacesToTabs
+		remainderSpaces := Mod(spacingCount, spacesToTabs)
+		spacingFormat := ""
+		
+		; Chr(0x2192) = rightwards arrow (→)
+		Loop tabEstimate {
+			spacingFormat .= Chr(0x2192)
+		}
+		if (remainderSpaces > 0)
+			spacingFormat .= "{:" . remainderSpaces . "}"
+		if (StrLen(spacingFormat) > 0)
+			return Format(spacingFormat, "")
+		return ""
+	}
+
+	/**
+	 * Translates a character to a corresponding symbol
+	 * @param {String} char
+	 * @returns {String}
+	 */
+	static TranslateCharacter(char) {
+		switch (char) {
+			case "`r":
+			case "`n":
+				; Chr(0x21B5) = return symbol (⏎)
+				return Chr(0x23CE)
+			case "`t":
+				; Chr(0x2192) = rightwards arrow (→)
+				return Chr(0x2192)
+			default:
+				return char
+		}
+	}
+
+	/**
+	 * Concatenates an array of strings and returns the resulting string
+	 * @param {Array} array
+	 * @returns {String}
+	 */
+	static array2str(array) {
+		/** @type {String} */
+		str := ""
+		for idx, val in array {
+			str .= val
+		}
+		return str
+	}
+}
 
 ;-----------------------------+
 ;    Func Obj definitions     |
@@ -236,6 +450,29 @@ SelectMode(vars*) {
 	CustomContextMenu.Show(mPosX, mPosY)
 }
 
+/**
+ * 
+ * @param {''|'paste'|'select'} forceMode
+ * @returns {String}
+ */
+CopyClipboard(forceMode := "") {
+	global copiedText, selectedText
+	mode := forceMode != "" ? forceMode : inputMode
+	switch mode {
+		case "paste":
+		case "","select":
+			if (selectedText != "") {
+				A_Clipboard := selectedText
+			}
+			else {
+				A_Clipboard := ""
+				Send("^c")
+				Errorlevel := !ClipWait(1)
+			}
+		default:
+	}
+	return copiedText
+}
 ;===========================================================#
 ;                  End Custom Context Menu                  #
 ;===========================================================#
