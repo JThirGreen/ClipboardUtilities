@@ -1,13 +1,14 @@
 ﻿#Requires AutoHotkey v2.0
-;===========================================================#
-;                     Clipboard Manager                     #
-;===========================================================#
 #Include ContextMenu.ahk
 #Include Utilities\General.ahk
 
 ;-----------------------------+
 ;    variable definitions     |
 ;-----------------------------+
+/**
+ * Buffer for holding clipboard history of CbManager
+ * @type {Array}
+ */
 global cbBuffer := []
 global cbBufferIndex := -1
 global cbBufferStatus := ""
@@ -163,20 +164,6 @@ class CustomClip {
 	InitClipboard()
 	ReloadCustomClipboardMenu()
 	CustomClipboardMenu.Show(mPosX, mPosY)
-	OnClipboardChange(OnCbChangeManager)
-}
-
-; Ctrl + C (Native Allowed)
-; Copy clipboard to buffer
-~^c::
-{
-	OnClipboardChange(OnCbChangeManager, 0)
-	A_Clipboard := ""
-	Errorlevel := !ClipWait(1)
-	global selectedText := A_Clipboard
-	global selectedClip := ClipboardAll()
-	;InitClipboard(false)
-	CopyToCbManager()
 	OnClipboardChange(OnCbChangeManager)
 }
 
@@ -352,7 +339,7 @@ OnCbChangeManager(DataType) {
 	if (DataType = 0)
 		return
 	else
-		ClipboardToCbManager()
+		ClipboardToCbManager((DataType = 1) ? "text" : "binary")
 }
 
 ArrayToCbBuffer(arr, dataType := "text") {
@@ -362,8 +349,17 @@ ArrayToCbBuffer(arr, dataType := "text") {
 	}
 }
 
-ClipboardToCbManager() {
-	clip := A_Clipboard
+/**
+ * Copies clipboard to {@link cbBuffer}. If clipboard fails to be evaluated as text, then copying {@link ClipboardAll()} is instead attempted. If {@link ClipboardAll()} is also empty, then {@link cbBuffer} is unchanged.
+ * @param {''|'text'|'binary'} dataType
+ * 
+ * ''|'text': Default behavior of copying {@link A_Clipboard} with {@link ClipboardAll()} as a fallback
+ * 
+ * 'binary': Skips straight to copying {@link ClipboardAll()}
+ */
+ClipboardToCbManager(dataType := "") {
+	global cbBufferReload
+	clip := (dataType != "binary") ? A_Clipboard : ""
 	if (clip != "") {
 		cbBuffer.Push(CustomClip(clip))
 	}
@@ -372,6 +368,7 @@ ClipboardToCbManager() {
 		if (clip.Size > 0)
 			cbBuffer.Push(CustomClip(clip, "binary"))
 	}
+	cbBufferReload := true
 }
 
 CopyToCbManager(mode := "", vars*) {
