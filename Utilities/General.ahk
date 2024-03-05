@@ -158,11 +158,9 @@ GetSelectedText(restoreClipboard := true) {
 PasteValue(str) {
 	/** @type {ClipboardAll} */
 	cbTemp := ClipboardAll()
-	
 	A_Clipboard := str
 	PasteClipboard()
 	A_Clipboard := cbTemp	; Restore clipboard before returning
-	
 	return
 }
 
@@ -184,35 +182,23 @@ InitClipboard(restoreClipboard := true) {
 	copiedText := A_Clipboard
 	copiedClip := ClipboardAll()
 	
-	copiedTitlePrev := copiedTitle
-	copiedTitle := PasteTitle
-	if (copiedText != "") {
-		copiedTitle .= " - " . MenuItemTextTrim(copiedText)
-	}
-	CustomContextMenu.Rename(copiedTitlePrev, copiedTitle)
-	
 	GetSelectedText(restoreClipboard)
-	selectedTitlePrev := selectedTitle
-	selectedTitle := SelectTitle
-	if (selectedText != "") {
-		selectedTitle .= " - " . MenuItemTextTrim(selectedText)
-	}
-	CustomContextMenu.Rename(selectedTitlePrev, selectedTitle)
 }
 
 
 /**
  * Paste contents of clipboard if not empty or if {forced=true}
+ * @param {Integer} delay Time (in ms) to wait for paste to occur
  * @param {true|false} forced
  * 
  * true: Paste from clipboard regardless of content
  * 
  * false: Paste from clipboard only if it's not empty
  */
-PasteClipboard(forced := false) {
+PasteClipboard(delay := 300, forced := false) {
 	if (forced || A_Clipboard != "" || ClipboardAll().Size > 0) {
 		Send("^v")
-		Sleep(300) ; Wait for paste to occur before returning
+		Sleep(delay) ; Wait for paste to occur before returning
 	}
 	return
 }

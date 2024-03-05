@@ -1,5 +1,8 @@
 #Requires AutoHotkey v2.0
 #Include Utilities\General.ahk
+#Include Utilities\Text.ahk
+#Include Utilities\XML.ahk
+
 ;===========================================================#
 ;                    Custom Context Menu                    #
 ;===========================================================#
@@ -7,6 +10,18 @@
 ;    variable definitions     |
 ;-----------------------------+
 ; Default static variables
+/**
+ * Global variable to store mouse X-coord
+ * @type {Number}
+ */
+global mPosX := 0
+
+/**
+ * Global variable to store mouse Y-coord
+ * @type {Number}
+ */
+global mPosY := 0
+
 /**
  * Number of spaces to consider equal to a tab when applicable
  * @type {String}
@@ -33,6 +48,30 @@ global inputMode := ""
 
 global copiedTitle := PasteTitle
 global selectedTitle := SelectTitle
+
+global SubMenuReloads := []
+InitMenu() {
+	global copiedText, selectedText, copiedTitle, selectedTitle
+	InitClipboard()
+
+	copiedTitlePrev := copiedTitle
+	copiedTitle := PasteTitle
+	if (copiedText != "") {
+		copiedTitle .= " - " . MenuItemTextTrim(copiedText)
+	}
+	CustomContextMenu.Rename(copiedTitlePrev, copiedTitle)
+	
+	selectedTitlePrev := selectedTitle
+	selectedTitle := SelectTitle
+	if (selectedText != "") {
+		selectedTitle .= " - " . MenuItemTextTrim(selectedText)
+	}
+	CustomContextMenu.Rename(selectedTitlePrev, selectedTitle)
+
+	for reload in SubMenuReloads {
+		reload()
+	}
+}
 
 /**
  * Matrix of string components
@@ -85,7 +124,7 @@ class MenuText {
 		get {
 			global menuTextWidth
 			/** @type {String} */
-			str := MenuText.array2str(this.preTrimComponents)
+			str := MenuText.Array2Str(this.preTrimComponents)
 			if (this.lineCount > 1) {
 				str := "[" . this.lineCount . " lines]" . str
 			}
@@ -96,7 +135,7 @@ class MenuText {
 				case "middle":
 					trimIndex := (menuTextWidth // 2) - 1
 					str := SubStr(str, 1, trimIndex) . "…"
-					str .= SubStr(MenuText.array2str(this.postTrimComponents) . charCounter, (1 + trimIndex - menuTextWidth))
+					str .= SubStr(MenuText.Array2Str(this.postTrimComponents) . charCounter, (1 + trimIndex - menuTextWidth))
 				case "end":
 					trimIndex := menuTextWidth - StrLen(charCounter)
 					str := SubStr(str, 1, trimIndex - 1) . "…" . charCounter
@@ -222,7 +261,7 @@ class MenuText {
 	 * @param {Array} array
 	 * @returns {String}
 	 */
-	static array2str(array) {
+	static Array2Str(array) {
 		/** @type {String} */
 		str := ""
 		for idx, val in array {
@@ -416,15 +455,14 @@ MarkSelectMode()
 ; Open custom context menu
 !+Space::
 {
+	global mPosX, mPosY
 	MouseGetPos(&mPosX, &mPosY)
-	InitClipboard()
-	ReloadCustomClipboardMenu()
+	InitMenu()
 	CustomContextMenu.Show(mPosX, mPosY)
 }
 
 MarkPasteMode() {
 	inputMode := "paste"
-;	MsgBox %inputMode%
 	CustomContextMenu.Check(copiedTitle)
 	CustomContextMenu.Uncheck(selectedTitle)
 	CustomContextMenu.Disable(copiedTitle)
@@ -432,6 +470,7 @@ MarkPasteMode() {
 }
 
 PasteMode(vars*) {
+	global mPosX, mPosY
 	MarkPasteMode()
 	CustomContextMenu.Show(mPosX, mPosY)
 }
@@ -446,6 +485,7 @@ MarkSelectMode() {
 }
 
 SelectMode(vars*) {
+	global mPosX, mPosY
 	MarkSelectMode()
 	CustomContextMenu.Show(mPosX, mPosY)
 }

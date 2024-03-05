@@ -6,7 +6,7 @@
 #Include Utilities\Text.ahk
 #Include Utilities\XML.ahk
 #Include ContextMenu.ahk
-#Include CbManager.ahk
+#Include ClipboardManager\CbManager.ahk
 
 A_HotkeyInterval := 1000 ; Milliseconds
 A_MaxHotkeysPerInterval := 200
@@ -24,14 +24,3 @@ TraySetIcon("Images\tray.png")
  */
 global tempGlobal := ""
 
-/**
- * Global variable to store mouse X-coord
- * @type {Number}
- */
-global mPosX := 0
-
-/**
- * Global variable to store mouse Y-coord
- * @type {Number}
- */
-global mPosY := 0
