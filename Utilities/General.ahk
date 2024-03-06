@@ -1,29 +1,5 @@
 #Requires AutoHotkey v2.0
 
-/**
- * Stores text content of clipboard when {@link InitClipboard()} is called
- * @type {String}
- */
-global copiedText := ""
-
-/**
- * Stores full content of clipboard when {@link InitClipboard()} is called
- * @type {ClipboardAll}
- */
-global copiedClip := {}
-
-/**
- * Stores text selected by user when requested by {@link GetSelectedText()} or when {@link InitClipboard()} is called
- * @type {String}
- */
-global selectedText := ""
-
-/**
- * Stores full content selected by user when requested by {@link GetSelectedText()} or when {@link InitClipboard()} is called
- * @type {ClipboardAll}
- */
-global selectedClip := {}
-
 class StringType {
 	/**
 	 * Type of data contained in string
@@ -122,94 +98,6 @@ SubstringLeading(txt, charArray) {
 		}
 	}
 	return leadingChars
-}
-
-/**
- * Use clipboard to get currently highlighted or selected text. Populates {@link selectedText} and {@link selectedClip}.
- * @param {true|false} restoreClipboard Flag to control whether or not to restore clipboard before returning
- * 
- * true: Restore clipboard to state from before this function was called
- * 
- * false: Keeps {@link selectedClip} value in the clipboard
- * 
- * @returns {String} Highlighted or selected text found and stored in {@link selectedText}
- */
-GetSelectedText(restoreClipboard := true) {
-	global selectedText, selectedClip
-	/** @type {ClipboardAll} */
-	cbTemp := ClipboardAll()
-	
-	A_Clipboard := ""
-	Send("^c")
-	Errorlevel := !ClipWait(0.1)
-	
-	selectedText := A_Clipboard
-	selectedClip := ClipboardAll()
-	if (restoreClipboard)
-		A_Clipboard := cbTemp	; Restore clipboard before returning
-	
-	return selectedText
-}
-
-/**
- * Temporarily uses clipboard to paste value of {str}.
- * @param str
- */
-PasteValue(str) {
-	/** @type {ClipboardAll} */
-	cbTemp := ClipboardAll()
-	A_Clipboard := str
-	PasteClipboard()
-	A_Clipboard := cbTemp	; Restore clipboard before returning
-	return
-}
-
-/**
- * Populates {@link copiedText}, {@link selectedText}, and {@link selectedClip}
- * 
- * {@link copiedText} populated with current text contained in clipboard
- * 
- * {@link selectedText} and {@link selectedClip} populated with user selected content via {@link GetSelectedText()}
- * 
- * @param {true|false} restoreClipboard
- * 
- * true: Restore clipboard to state from before {@link GetSelectedText()} was called
- * 
- * false: Keeps {@link selectedClip} value in the clipboard
- */
-InitClipboard(restoreClipboard := true) {
-	global copiedText, selectedText, copiedTitle, selectedTitle
-	copiedText := A_Clipboard
-	copiedClip := ClipboardAll()
-	
-	GetSelectedText(restoreClipboard)
-}
-
-
-/**
- * Paste contents of clipboard if not empty or if {forced=true}
- * @param {Integer} delay Time (in ms) to wait for paste to occur
- * @param {true|false} forced
- * 
- * true: Paste from clipboard regardless of content
- * 
- * false: Paste from clipboard only if it's not empty
- */
-PasteClipboard(delay := 300, forced := false) {
-	if (forced || A_Clipboard != "" || ClipboardAll().Size > 0) {
-		Send("^v")
-		Sleep(delay) ; Wait for paste to occur before returning
-	}
-	return
-}
-
-/**
- * Trims and formats string {val} for use in menus
- * @param {String} val Text to trim
- * @returns {String} Trimmed text
- */
-MenuItemTextTrim(val) {
-	return MenuText(val).Text
 }
 
 /**

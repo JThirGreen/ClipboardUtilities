@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include Utilities\General.ahk
+#Include Utilities\Clipboard.ahk
 #Include Utilities\Text.ahk
 #Include Utilities\XML.ahk
 
@@ -71,6 +72,15 @@ InitMenu() {
 	for reload in SubMenuReloads {
 		reload()
 	}
+}
+
+/**
+ * Trims and formats string {val} for use in menus
+ * @param {String} val Text to trim
+ * @returns {String} Trimmed text
+ */
+MenuItemTextTrim(val) {
+	return MenuText(val).Text
 }
 
 /**
@@ -274,52 +284,59 @@ class MenuText {
 ;-----------------------------+
 ;    Func Obj definitions     |
 ;-----------------------------+
-global xmlEncode := XMLTransform_cb.Bind("encode")
-global xmlDecode := XMLTransform_cb.Bind("decode")
-global xEncode := XMLTransform_cb.Bind("encode tag")
-global xDecode := XMLTransform_cb.Bind("decode tag")
+CastTransformAction(tfType, toCaseState, vars*) {
+	CaseTransform_cb(tfType, toCaseState)
+}
 
-global toUpper := CaseTransform_ht.Bind("", 4)
-global toTitle := CaseTransform_ht.Bind("", 3)
-global toCapital := CaseTransform_ht.Bind("", 2)
-global toLower := CaseTransform_ht.Bind("", 1)
+XMLTransformAction(tfType, wrapType, vars*) {
+	XMLTransform_cb(tfType, wrapType)
+}
 
-global toCamel := CaseTransform_ht.Bind("ToCamel")
-global fromCamel := CaseTransform_ht.Bind("FromCamel", 0)
-global upperFromCamel := CaseTransform_ht.Bind("FromCamel", 4)
-global titleFromCamel := CaseTransform_ht.Bind("FromCamel", 3)
-global capFromCamel := CaseTransform_ht.Bind("FromCamel", 2)
-global lowerFromCamel := CaseTransform_ht.Bind("FromCamel", 1)
+global xmlEncode := XMLTransformAction.Bind("encode","")
+global xmlDecode := XMLTransformAction.Bind("decode","")
+global xEncode := XMLTransformAction.Bind("encode tag","")
+global xDecode := XMLTransformAction.Bind("decode tag","")
 
-global xslCommentWrap := XMLTransform_cb.Bind("comment")
-global xslUncomment := XMLTransform_cb.Bind("uncomment")
-global xslValueOfWrap := XMLTransform_cb.Bind("valueOf")
-global xslCopyOfWrap := XMLTransform_cb.Bind("copyOf")
-global xslIfWrap := XMLTransform_cb.Bind("if")
-global xslChooseWrap := XMLTransform_cb.Bind("choose")
-global xslTextWrap := XMLTransform_cb.Bind("text")
+global toUpper := CastTransformAction.Bind("", 4)
+global toTitle := CastTransformAction.Bind("", 3)
+global toCapital := CastTransformAction.Bind("", 2)
+global toLower := CastTransformAction.Bind("", 1)
 
-global xslSelfTag := XMLTransform_cb.Bind("","selfTag")
-global xslEmptySelfTag := XMLTransform_cb.Bind("empty","selfTag")
-global xslValueOfSelfTag := XMLTransform_cb.Bind("valueOf","selfTag")
-global xslCopyOfSelfTag := XMLTransform_cb.Bind("copyOf","selfTag")
-global xslIfSelfTag := XMLTransform_cb.Bind("if","selfTag")
-global xslChooseSelfTag := XMLTransform_cb.Bind("choose","selfTag")
+global toCamel := CastTransformAction.Bind("ToCamel", 0)
+global fromCamel := CastTransformAction.Bind("FromCamel", 0)
+global upperFromCamel := CastTransformAction.Bind("FromCamel", 4)
+global titleFromCamel := CastTransformAction.Bind("FromCamel", 3)
+global capFromCamel := CastTransformAction.Bind("FromCamel", 2)
+global lowerFromCamel := CastTransformAction.Bind("FromCamel", 1)
 
-global xslVar := XMLTransform_cb.Bind("","variable")
-global xslEmptyVar := XMLTransform_cb.Bind("empty","variable")
-global xslValueOfVar := XMLTransform_cb.Bind("valueOf","variable")
-global xslCopyOfVar := XMLTransform_cb.Bind("copyOf","variable")
-global xslIfVar := XMLTransform_cb.Bind("if","variable")
-global xslChooseVar := XMLTransform_cb.Bind("choose","variable")
+global xslCommentWrap := XMLTransformAction.Bind("comment","")
+global xslUncomment := XMLTransformAction.Bind("uncomment","")
+global xslValueOfWrap := XMLTransformAction.Bind("valueOf","")
+global xslCopyOfWrap := XMLTransformAction.Bind("copyOf","")
+global xslIfWrap := XMLTransformAction.Bind("if","")
+global xslChooseWrap := XMLTransformAction.Bind("choose","")
+global xslTextWrap := XMLTransformAction.Bind("text","")
 
-global xslAttr := XMLTransform_cb.Bind("","attribute")
-global xslEmptyAttr := XMLTransform_cb.Bind("empty","attribute")
-global xslValueOfAttr := XMLTransform_cb.Bind("valueOf","attribute")
-global xslCopyOfAttr := XMLTransform_cb.Bind("copyOf","attribute")
-global xslIfAttr := XMLTransform_cb.Bind("if","attribute")
-global xslChooseAttr := XMLTransform_cb.Bind("choose","attribute")
+global xslSelfTag := XMLTransformAction.Bind("","selfTag")
+global xslEmptySelfTag := XMLTransformAction.Bind("empty","selfTag")
+global xslValueOfSelfTag := XMLTransformAction.Bind("valueOf","selfTag")
+global xslCopyOfSelfTag := XMLTransformAction.Bind("copyOf","selfTag")
+global xslIfSelfTag := XMLTransformAction.Bind("if","selfTag")
+global xslChooseSelfTag := XMLTransformAction.Bind("choose","selfTag")
 
+global xslVar := XMLTransformAction.Bind("","variable")
+global xslEmptyVar := XMLTransformAction.Bind("empty","variable")
+global xslValueOfVar := XMLTransformAction.Bind("valueOf","variable")
+global xslCopyOfVar := XMLTransformAction.Bind("copyOf","variable")
+global xslIfVar := XMLTransformAction.Bind("if","variable")
+global xslChooseVar := XMLTransformAction.Bind("choose","variable")
+
+global xslAttr := XMLTransformAction.Bind("","attribute")
+global xslEmptyAttr := XMLTransformAction.Bind("empty","attribute")
+global xslValueOfAttr := XMLTransformAction.Bind("valueOf","attribute")
+global xslCopyOfAttr := XMLTransformAction.Bind("copyOf","attribute")
+global xslIfAttr := XMLTransformAction.Bind("if","attribute")
+global xslChooseAttr := XMLTransformAction.Bind("choose","attribute")
 
 
 ;-----------------------------+
@@ -392,7 +409,7 @@ CustomContextMenu.Add("lowercase", toLower)
 CustomContextMenu.Add()
 CustomContextMenu.Add("ToCamelCase", toCamel)
 CustomContextMenu.Add("FromCamelCase", fromCamel)
-CustomContextMenu.Add("Camel > Case", FromCamel)
+CustomContextMenu.Add("Camel > Case", FromCamelMenu)
 CustomContextMenu.Add()
 CustomContextMenu.Add("&value-of", xslValueOfWrap)
 CustomContextMenu.SetIcon("&value-of", "Images\XML.png",, 0)
@@ -488,30 +505,6 @@ SelectMode(vars*) {
 	global mPosX, mPosY
 	MarkSelectMode()
 	CustomContextMenu.Show(mPosX, mPosY)
-}
-
-/**
- * 
- * @param {''|'paste'|'select'} forceMode
- * @returns {String}
- */
-CopyClipboard(forceMode := "") {
-	global copiedText, selectedText
-	mode := forceMode != "" ? forceMode : inputMode
-	switch mode {
-		case "paste":
-		case "","select":
-			if (selectedText != "") {
-				A_Clipboard := selectedText
-			}
-			else {
-				A_Clipboard := ""
-				Send("^c")
-				Errorlevel := !ClipWait(1)
-			}
-		default:
-	}
-	return copiedText
 }
 ;===========================================================#
 ;                  End Custom Context Menu                  #

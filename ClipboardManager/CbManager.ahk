@@ -1,6 +1,7 @@
 ﻿#Requires AutoHotkey v2.0
 #Include ..\ContextMenu.ahk
 #Include ..\Utilities\General.ahk
+#Include ..\Utilities\Clipboard.ahk
 #Include ClipArray.ahk
 
 ;-----------------------------+
@@ -284,7 +285,7 @@ ClearcbArray(vars*) {
 ;    function definitions     |
 ;-----------------------------+
 OnCbChangeManager(DataType) {
-	if (DataType = 0)
+	if (clipboardInitializing || DataType = 0)
 		return
 	else {
 		OnClipboardChange(OnCbChangeManager, 0)

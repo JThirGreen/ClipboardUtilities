@@ -1,15 +1,10 @@
 #Requires AutoHotkey v2.0
-;===========================================================#
-;                    XML Transformations                    #
-;===========================================================#
-;-----------------------------+
-;     hotkey definitions      |
-;-----------------------------+
+#Include Clipboard.ahk
+
 ; Alt + Shift + <
 ; XML encode [< >]
 !+<::
 {
-	InitClipboard()
 	XMLTransform_cb("encode tag")
 }
 
@@ -17,7 +12,6 @@
 ; XML decode [&lt; &gt;]
 !+>::
 {
-	InitClipboard()
 	XMLTransform_cb("decode tag")
 }
 
@@ -26,7 +20,6 @@
 ; XML encode [& ' " < >]
 !+e::
 {
-	InitClipboard()
 	XMLTransform_cb("encode")
 }
 
@@ -34,7 +27,6 @@
 ; XML encode [&amp; &apos; &quot; &lt; &gt;]
 !+d::
 {
-	InitClipboard()
 	XMLTransform_cb("decode")
 }
 
@@ -42,7 +34,6 @@
 ; XML comment
 !+Delete::
 {
-	InitClipboard()
 	XMLTransform_cb("comment")
 }
 
@@ -50,7 +41,6 @@
 ; XML uncomment
 !+Insert::
 {
-	InitClipboard()
 	XMLTransform_cb("uncomment")
 }
 
@@ -58,25 +48,36 @@
 ;-----------------------------+
 ;    function definitions     |
 ;-----------------------------+
-XMLTransform_cb(tfType, wrapType:="", vars*) {
+
+/**
+ * Run {@link XMLWrap()} on selected text via clipboard
+ * @param {String} tfType Type of transformation to perform
+ * @param {String} wrapType Type of wrapping to apply
+ */
+XMLTransform_cb(tfType, wrapType:="") {
+	/** @type {true|false} */
 	forceSelectMode := false
 	switch tfType {
 		case "comment","uncomment":
 			forceSelectMode := true
 	}
-	prev_cb := forceSelectMode ? CopyClipboard("select") : CopyClipboard()
-	if (A_Clipboard != "" or (tfType = "empty" and wrapType != "")) {
-		A_Clipboard := XMLWrap(A_Clipboard, tfType, wrapType)
-		PasteClipboard()
+	txt := GetClipboardValue(forceSelectMode ? "select" : "")
+	if (txt != "" or (tfType = "empty" and wrapType != "")) {
+		PasteValue(XMLWrap(txt, tfType, wrapType))
 	}
-	A_Clipboard := prev_cb
 	return
 }
 
+/**
+ * Transform and wrap text for use in XML/XSL
+ * @param {String} text Text to transform and wrap
+ * @param {String} tfType Type of {@link XMLTransform()} transformation to apply
+ * @param {String} wrapType Type of wrapping to apply to transformed text
+ * @returns {String} String resulting from modifying text
+ */
 XMLWrap(text, tfType, wrapType) {
-	startText := text
-	newText := ""
-	nameText := ""
+	/** @type {String} */
+	startText := text, newText := "", nameText := ""
 	if (tfType != "empty") {
 		newText := XMLTransform(text, tfType)
 	}
@@ -122,9 +123,26 @@ XMLWrap(text, tfType, wrapType) {
 	return newText
 }
 
-XMLTransform(text, tfType) {
-	startText := text
-	chooseType := "blankCheck" ; Hardcoded flag to control whether initial value is added to choose or if
+/**
+ * Transform text for use in XML/XSL
+ * 
+ * Supports encoding/decoding, commenting/uncommenting, and generating various XSL tags using provided text
+ * 
+ * @param {String} startText Text to transform
+ * @param {String} tfType Type transformation to apply
+ * @returns {String} String resulting from transforming text
+ */
+XMLTransform(startText, tfType) {
+	/** 
+	 * Transformed text
+	 * @type {String}
+	 */
+	text := startText
+	/**
+	 * Hardcoded flag to control whether initial value is added to choose or if
+	 * @type {String}
+	 */
+	chooseType := "blankCheck"
 	
 	;------------------------#
 	;     Start if-else      #
@@ -203,7 +221,3 @@ XMLTransform(text, tfType) {
 	
 	return text
 }
-
-;===========================================================#
-;                  End XML Transformations                  #
-;===========================================================#
