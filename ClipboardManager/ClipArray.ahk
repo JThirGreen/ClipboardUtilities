@@ -64,7 +64,6 @@ class ClipArray {
 	 * Append {@link CustomClip} clip(s) to end of array
 	 * 
 	 * Ignores maximum clip array size
-	 * 
 	 * @param {CustomClip} clips Clip(s) to add to array
 	 */
 	Push(clips*) {
@@ -137,7 +136,6 @@ class ClipArray {
 	 * Positive: Shift selection toward most recent clips
 	 * 
 	 * Negative: Shift selection toward oldest clips
-	 * 
 	 * @param {true|false} andPaste
 	 * 
 	 * true: Paste newly selected {@link CustomClip} clip
@@ -191,7 +189,6 @@ class ClipArray {
 	 * Replace clip array with provided array and select the first clip
 	 * 
 	 * Ignores maximum clip array size
-	 * 
 	 * @param {Array} arr Array to load {@link CustomClip} clips from
 	 * @param {String} contentType Type of content to be expected from array
 	 */
@@ -209,7 +206,6 @@ class ClipArray {
 	 * If {mode} is not valid, then string is instead simply added to current clip array
 	 * 
 	 * Ignores maximum clip array size
-	 * 
 	 * @param {String} str String to evaluate
 	 * @param {String} mode Evaluation mode to use
 	 * 
@@ -231,14 +227,14 @@ class ClipArray {
 	}
 
 	/**
-	 * 
+	 * Return clip array as string based on mode
 	 * @param {String} mode String generation mode 
 	 * 
 	 * 'list': Generate string from each clip in array concatenated together seperated by new lines and return it
 	 * 
 	 * 'csv': Generate CSV string from each clip in array and return it
 	 * 
-	 * default: Add string to clip array
+	 * default: Return currently selected clip as string
 	 * @returns {String} 
 	 */
 	ToString(mode) {

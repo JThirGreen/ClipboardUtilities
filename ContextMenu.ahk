@@ -4,13 +4,9 @@
 #Include Utilities\Text.ahk
 #Include Utilities\XML.ahk
 
-;===========================================================#
-;                    Custom Context Menu                    #
-;===========================================================#
 ;-----------------------------+
 ;    variable definitions     |
 ;-----------------------------+
-; Default static variables
 /**
  * Global variable to store mouse X-coord
  * @type {Number}
@@ -25,7 +21,7 @@ global mPosY := 0
 
 /**
  * Number of spaces to consider equal to a tab when applicable
- * @type {String}
+ * @type {Intenger}
  */
 global spacesToTabs := 4
 
@@ -33,25 +29,42 @@ global spacesToTabs := 4
  * Maximum character length for dynamic menu text
  * @type {Integer}
  */
-global menuTextWidth := 40
+global menuTextWidth := 64
 
-global PasteTitle := "Paste Mode"
-global SelectTitle := "Select Mode"
 /**
- * Current input mode
- * 
- * 'paste': Perform transformations on clipboard content and paste
- * 
- * 'select': Perform transformations on highlighted text
+ * Default menu text for paste mode
  * @type {String}
  */
-global inputMode := ""
+global PasteTitle := "Paste Mode"
 
+/**
+ * Default menu text for select mode
+ * @type {String}
+ */
+global SelectTitle := "Select Mode"
+
+/**
+ * Menu text to display for paste mode
+ * @type {String}
+ */
 global copiedTitle := PasteTitle
+
+/**
+ * Menu text to display for select mode
+ * @type {String}
+ */
 global selectedTitle := SelectTitle
 
+/**
+ * Array for storing reload functions to call for submenus added by extensions
+ * @type {Array}
+ */
 global SubMenuReloads := []
-InitMenu() {
+
+/**
+ * Reload menu and any extension menus configured with a reload function
+ */
+ReloadMenu() {
 	global copiedText, selectedText, copiedTitle, selectedTitle
 	InitClipboard()
 
@@ -284,11 +297,25 @@ class MenuText {
 ;-----------------------------+
 ;    Func Obj definitions     |
 ;-----------------------------+
+/**
+ * Wrapper function for calling {@link CaseTransform_cb()} from menu option
+ * @param {String} tfType Type of transformation to perform
+ * @param {Integer} toCaseState Case state to transform selected text to
+ * @param vars Additional parameters auto-added by menu option
+ */
 CastTransformAction(tfType, toCaseState, vars*) {
+	Sleep(10) ; Occasionally pasting from menu option would not work without a small delay
 	CaseTransform_cb(tfType, toCaseState)
 }
 
+/**
+ * Wrapper function for calling {@link XMLTransform_cb()} from menu option
+ * @param {String} tfType Type of transformation to perform
+ * @param {String} wrapType Type of wrapping to apply
+ * @param vars Additional parameters auto-added by menu option
+ */
 XMLTransformAction(tfType, wrapType, vars*) {
+	Sleep(10) ; Occasionally pasting from menu option would not work without a small delay
 	XMLTransform_cb(tfType, wrapType)
 }
 
@@ -326,6 +353,7 @@ global xslChooseSelfTag := XMLTransformAction.Bind("choose","selfTag")
 
 global xslVar := XMLTransformAction.Bind("","variable")
 global xslEmptyVar := XMLTransformAction.Bind("empty","variable")
+global xslSelectVar := XMLTransformAction.Bind("select","variable")
 global xslValueOfVar := XMLTransformAction.Bind("valueOf","variable")
 global xslCopyOfVar := XMLTransformAction.Bind("copyOf","variable")
 global xslIfVar := XMLTransformAction.Bind("if","variable")
@@ -333,6 +361,7 @@ global xslChooseVar := XMLTransformAction.Bind("choose","variable")
 
 global xslAttr := XMLTransformAction.Bind("","attribute")
 global xslEmptyAttr := XMLTransformAction.Bind("empty","attribute")
+global xslSelectAttr := XMLTransformAction.Bind("select","attribute")
 global xslValueOfAttr := XMLTransformAction.Bind("valueOf","attribute")
 global xslCopyOfAttr := XMLTransformAction.Bind("copyOf","attribute")
 global xslIfAttr := XMLTransformAction.Bind("if","attribute")
@@ -342,6 +371,7 @@ global xslChooseAttr := XMLTransformAction.Bind("choose","attribute")
 ;-----------------------------+
 ;      menu definitions       |
 ;-----------------------------+
+/** @type {Menu} */
 global XMLUtilsMenu := Menu()
 XMLUtilsMenu.Add("<!--&Comment-->", xslCommentWrap)
 XMLUtilsMenu.Add("&Uncomment", xslUncomment)
@@ -350,6 +380,7 @@ XMLUtilsMenu.Add("XML &Decode", xmlDecode)
 XMLUtilsMenu.Add("<> to &&lt;&&gt;", xEncode)
 XMLUtilsMenu.Add("&&lt;&&gt; to <>", xDecode)
 
+/** @type {Menu} */
 global SelfTagMenu := Menu()
 SelfTagMenu.Add("#&SELF", xslSelfTag)
 SelfTagMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
@@ -364,11 +395,14 @@ SelfTagMenu.SetIcon("&if", "Images\XML.png",, 0)
 SelfTagMenu.Add("c&hoose", xslChooseSelfTag)
 SelfTagMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
 
+/** @type {Menu} */
 global VariableMenu := Menu()
 VariableMenu.Add("#&SELF", xslVar)
 VariableMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
 VariableMenu.Add("#&EMPTY", xslEmptyVar)
 VariableMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
+VariableMenu.Add("se&lect", xslSelectVar)
+VariableMenu.SetIcon("se&lect", "Images\XML.png",, 0)
 VariableMenu.Add("&value-of", xslValueOfVar)
 VariableMenu.SetIcon("&value-of", "Images\XML.png",, 0)
 VariableMenu.Add("&copy-of", xslCopyOfVar)
@@ -378,11 +412,14 @@ VariableMenu.SetIcon("&if", "Images\XML.png",, 0)
 VariableMenu.Add("c&hoose", xslChooseVar)
 VariableMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
 
+/** @type {Menu} */
 global AttributeMenu := Menu()
 AttributeMenu.Add("#&SELF", xslAttr)
 AttributeMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
 AttributeMenu.Add("#&EMPTY", xslEmptyAttr)
 AttributeMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
+AttributeMenu.Add("se&lect", xslSelectAttr)
+AttributeMenu.SetIcon("se&lect", "Images\XML.png",, 0)
 AttributeMenu.Add("&value-of", xslValueOfAttr)
 AttributeMenu.SetIcon("&value-of", "Images\XML.png",, 0)
 AttributeMenu.Add("&copy-of", xslCopyOfAttr)
@@ -392,12 +429,14 @@ AttributeMenu.SetIcon("&if", "Images\XML.png",, 0)
 AttributeMenu.Add("c&hoose", xslChooseAttr)
 AttributeMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
 
+/** @type {Menu} */
 global FromCamelMenu := Menu()
 FromCamelMenu.Add("UPPERCASE", upperFromCamel)
 FromCamelMenu.Add("Title Case", titleFromCamel)
 FromCamelMenu.Add("Capital case", capFromCamel)
 FromCamelMenu.Add("lowercase", lowerFromCamel)
 
+/** @type {Menu} */
 global CustomContextMenu := Menu()
 CustomContextMenu.Add(copiedTitle, PasteMode)
 CustomContextMenu.Add(selectedTitle, SelectMode)
@@ -431,9 +470,7 @@ CustomContextMenu.Add()
 CustomContextMenu.Add("&XML Utils", XMLUtilsMenu)
 CustomContextMenu.SetIcon("&XML Utils", "Images\XML.png",, 0)
 
-
 MarkSelectMode()
-
 
 ;-----------------------------+
 ;       gui definitions       |
@@ -474,10 +511,13 @@ MarkSelectMode()
 {
 	global mPosX, mPosY
 	MouseGetPos(&mPosX, &mPosY)
-	InitMenu()
+	ReloadMenu()
 	CustomContextMenu.Show(mPosX, mPosY)
 }
 
+/**
+ * Switch to paste mode and updates menu accordingly
+ */
 MarkPasteMode() {
 	inputMode := "paste"
 	CustomContextMenu.Check(copiedTitle)
@@ -486,12 +526,19 @@ MarkPasteMode() {
 	CustomContextMenu.Enable(selectedTitle)
 }
 
+/**
+ * Menu option for switching to paste mode and refreshing menu
+ * @param vars Additional parameters auto-added by menu option
+ */
 PasteMode(vars*) {
 	global mPosX, mPosY
 	MarkPasteMode()
 	CustomContextMenu.Show(mPosX, mPosY)
 }
 
+/**
+ * Switch to select mode and updates menu accordingly
+ */
 MarkSelectMode() {
 	inputMode := "select"
 ;	MsgBox %inputMode%
@@ -501,11 +548,12 @@ MarkSelectMode() {
 	CustomContextMenu.Enable(copiedTitle)
 }
 
+/**
+ * Menu option for switching to select mode and refreshing menu
+ * @param vars Additional parameters auto-added by menu option
+ */
 SelectMode(vars*) {
 	global mPosX, mPosY
 	MarkSelectMode()
 	CustomContextMenu.Show(mPosX, mPosY)
 }
-;===========================================================#
-;                  End Custom Context Menu                  #
-;===========================================================#

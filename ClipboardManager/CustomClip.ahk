@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#Include ..\Utilities\Clipboard.ahk
 #Include ..\ContextMenu.ahk
 
 class CustomClip {
@@ -59,10 +60,7 @@ class CustomClip {
 	 */
 	Paste() {
 		if (this.type = "binary") {
-			cbTemp := ClipboardAll()
-			A_Clipboard := ClipboardAll(this.value)
-			PasteClipboard(, true)
-			A_Clipboard := cbTemp
+			PasteValue(this.value, this.type, true)
 		}
 		else {
 			PasteValue(this.ToString())
@@ -73,11 +71,6 @@ class CustomClip {
 	 * Replace clipboard content with content of this clip
 	 */
 	Select() {
-		if (this.type = "binary") {
-			A_Clipboard := ClipboardAll(this.value)
-		}
-		else {
-			A_Clipboard := this.value
-		}
+		SetClipboardValue(this.value, this.type)
 	}
 }

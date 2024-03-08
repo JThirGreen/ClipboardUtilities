@@ -1,7 +1,4 @@
 ﻿#Requires AutoHotkey v2.0
-;===========================================================#
-;                      AutoHotKey Init                      #
-;===========================================================#
 #Include Utilities\General.ahk
 #Include Utilities\Text.ahk
 #Include Utilities\XML.ahk
@@ -24,3 +21,4 @@ TraySetIcon("Images\tray.png")
  */
 global tempGlobal := ""
 
+ListLines(false)

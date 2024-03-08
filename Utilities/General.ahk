@@ -103,11 +103,11 @@ SubstringLeading(txt, charArray) {
 /**
  * Displays string {txt} as tooltip for {delay} period of time in milliseconds
  * @param {String} txt String to display as tooltip
- * @param {Integer} delay number of milliseconds to display tooltip for
+ * @param {Integer} delay Number of milliseconds to display tooltip for
  */
 AddToolTip(txt, delay := 2000) {
 	ToolTip(txt)
-	delay := 0 - Abs(delay)
+	delay := 0 - Abs(delay) ; Force negative to only run timer once
 	if (delay)
 		SetTimer(RemoveToolTip, delay)
 }

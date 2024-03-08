@@ -20,7 +20,7 @@ global cbCaseTextNew := ""
 /**
  * State of case scrolling
  * @type {Integer|String}
- * 
+
  * -1: Inactive
  * 
  * 'numeric': Increment/decrement string as a number
@@ -102,7 +102,6 @@ FormatEncode(str) {
  * Get selected text, shift case level up/down, and show new case level in tooltip.
  * 
  * If new case level is unchanged for a period of time, the selected text is replaced with the result.
- * 
  * @param {Integer} increment Case level steps to make.
  * 
  * If the selected text is a numeric value, then it is incremented/decremented, otherwise the characters are shifted between {@link CaseTransform()} levels
@@ -186,11 +185,10 @@ CaseScrollEnd() {
  * 'FromCamel': Add spaces after any lowercase characters if followed by uppercase character
  * 
  * Optionally, apply a specific case state to the result
- * 
  * @param {Integer} toCaseState Case state to transform selected text to
  */
 CaseTransform_cb(tfType, toCaseState := 0) {
-	inText := GetClipboardValue("select")
+	inText := GetClipboardValue("")
 	if (inText != "")
 		switch tfType {
 			Case "ToCamel":
@@ -211,12 +209,15 @@ CaseTransform_cb(tfType, toCaseState := 0) {
  */
 GetTextCase(txt) {
 	CaseState := 0
+	if (StrLen(txt) = 0)
+		return CaseState
+
 	RegExReplace(txt, "[A-Z]", "", &UpperFound, 2)
 	RegExReplace(txt, "[a-z]", "", &LowerFound, 2)
 	if (!UpperFound) {
 		if (!LowerFound) {
 			RegExMatch(txt, "[-+]?[0-9]{1,3}(,?[0-9]{3})*$", &NumberCheck)
-			if (StrLen(txt) = NumberCheck.Len()) {
+			if (NumberCheck != "" && StrLen(txt) = NumberCheck.Len()) {
 				caseState := "numeric"
 			}
 			else {
@@ -255,7 +256,6 @@ GetTextCase(txt) {
  * If case 2 results in no change, then decrement is assumed and 2 is skipped (4 => 3 => 1)
  * 
  * If case 3 results in no change, then increment is assumed and 3 is skipped (1 => 2 => 4)
- * 
  * @returns {String} Transformed string
  */
 CaseTransform(txt, CaseState := 0, ForceState := true) {
@@ -301,7 +301,6 @@ ToCamelCase(txt) {
  * Add spaces after any lowercase characters if followed by uppercase character
  * 
  * Optionally, apply a specific case state to the result
- * 
  * @param {String} txt String to transform
  * @param {Integer} toCaseState Case state to transform string to
  * @returns {String} Transformed string
@@ -340,7 +339,6 @@ IncrementNumericString(txt, incrementVal) {
  * Wrap provided string based on wrapping mode
  * 
  * If multi-lined string, then certain wrapping modes apply additional whitespace formatting
- * 
  * @param {String} txt Text to add wrapping to
  * @param {String} wrapMode Type of wrapping to apply
  * @returns {String} Wrapped text

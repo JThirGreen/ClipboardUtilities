@@ -35,6 +35,16 @@ global selectedText := ""
 global selectedClip := {}
 
 /**
+ * Current input mode
+ * 
+ * 'paste': Perform transformations on clipboard content and paste
+ * 
+ * 'select': Perform transformations on highlighted text
+ * @type {String}
+ */
+global inputMode := ""
+
+/**
  * Populates {@link copiedText}, {@link copiedClip}, {@link selectedText}, and {@link selectedClip}
  * 
  * {@link copiedText} populated with current text contained in clipboard
@@ -42,7 +52,6 @@ global selectedClip := {}
  * {@link copiedClip} populated with current clipboard content
  * 
  * {@link selectedText} and {@link selectedClip} populated with user selected content via {@link GetSelectedText()}
- * 
  * @param {true|false} restoreClipboard
  * 
  * true: Restore clipboard to state from before {@link GetSelectedText()} was called
@@ -50,19 +59,39 @@ global selectedClip := {}
  * false: Keeps {@link selectedClip} value in the clipboard
  */
 InitClipboard(restoreClipboard := true) {
-	global clipboardInitializing, copiedText, copiedClip
-	/** @type {true|false} */
-	clearInitFlag := false
-	if (!clipboardInitializing) {
-		clipboardInitializing := true
-		clearInitFlag := true
-	}
+	cbLockKey := SetClipboardInitializing()
 
 	copiedText := A_Clipboard
 	copiedClip := ClipboardAll()
 	GetSelectedText(restoreClipboard)
 
-	if (clearInitFlag)
+	ClearClipboardInitializing(cbLockKey)
+}
+
+/**
+ * Mark clipboard lock flag for when clipboard is being modified by script and return key
+ * 
+ * If flag already locked, then no change occurs
+ * @returns {true|false} Key to flag lock
+ */
+SetClipboardInitializing() {
+	global clipboardInitializing
+	/** @type {true|false} */
+	cbLockFlagKey := false
+	if (!clipboardInitializing) {
+		clipboardInitializing := true
+		cbLockFlagKey := true
+	}
+	return cbLockFlagKey
+}
+
+/**
+ * Clear clipboard lock flag if valid key is provided
+ * @param {true|false} key Key to clipboard lock flag
+ */
+ClearClipboardInitializing(key) {
+	global clipboardInitializing
+	if (key)
 		clipboardInitializing := false
 }
 
@@ -90,17 +119,11 @@ PasteClipboard(delay := 300, forced := false) {
  * true: Restore clipboard to state from before this function was called
  * 
  * false: Keeps {@link selectedClip} value in the clipboard
- * 
  * @returns {String} Highlighted or selected text found and stored in {@link selectedText}
  */
 GetSelectedText(restoreClipboard := true) {
-	global selectedText, selectedClip, clipboardInitializing
-	/** @type {true|false} */
-	clearInitFlag := false
-	if (!clipboardInitializing) {
-		clipboardInitializing := true
-		clearInitFlag := true
-	}
+	global selectedText, selectedClip
+	cbLockKey := SetClipboardInitializing()
 	/** @type {ClipboardAll} */
 	cbTemp := ClipboardAll()
 	
@@ -113,32 +136,24 @@ GetSelectedText(restoreClipboard := true) {
 	if (restoreClipboard)
 		A_Clipboard := cbTemp	; Restore clipboard before returning
 	
-	if (clearInitFlag)
-		clipboardInitializing := false
+	ClearClipboardInitializing(cbLockKey)
 	return selectedText
 }
 
 /**
- * Temporarily uses clipboard to paste value of {str}.
+ * Temporarily uses clipboard to paste value of {val}.
  * @param str
  */
-PasteValue(str) {
-	global clipboardInitializing
-	/** @type {true|false} */
-	clearInitFlag := false
-	if (!clipboardInitializing) {
-		clipboardInitializing := true
-		clearInitFlag := true
-	}
+PasteValue(val, type := "text", allowBlank := false) {
+	cbLockKey := SetClipboardInitializing()
 
 	/** @type {ClipboardAll} */
 	cbTemp := ClipboardAll()
-	A_Clipboard := str
-	PasteClipboard()
+	SetClipboardValue(val, type)
+	PasteClipboard(, allowBlank)
 	A_Clipboard := cbTemp	; Restore clipboard before returning
 
-	if (clearInitFlag)
-		clipboardInitializing := false
+	ClearClipboardInitializing(cbLockKey)
 	return
 }
 
@@ -150,7 +165,6 @@ PasteValue(str) {
  * 'select': Return user selected text content
  * 
  * 'paste': Return current clipboard text content
- * 
  * @returns {String} Text content based on mode
  */
 GetClipboardValue(forceMode := "") {
@@ -165,4 +179,42 @@ GetClipboardValue(forceMode := "") {
 		default:
 	}
 	return selectedText
+}
+
+/**
+ * Set clipboard content to specified value
+ * @param {Any} val Content to put into clipboard
+ * @param {String} type Type of clipboard data that value is
+ * 
+ * 'text': Handle value as unformatted text
+ * 
+ * 'binary': Handle value as raw clipboard content
+ */
+SetClipboardValue(val, type := "text") {
+	cbLockKey := SetClipboardInitializing()
+
+	A_Clipboard := (type = "binary") ? ClipboardAll(val) : val
+	
+	ClearClipboardInitializing(cbLockKey)
+	return
+}
+
+/**
+ * Swap selected text with contents of clipboard
+ */
+SwapTextWithClipboard() {
+	cbLockKey := SetClipboardInitializing()
+
+	cb_old := A_Clipboard
+	A_Clipboard := ""
+	Send("^c")
+	Errorlevel := !ClipWait(1)
+	if (A_Clipboard != "") {
+		cb_new := A_Clipboard
+		A_Clipboard := cb_old
+		PasteClipboard()
+		A_Clipboard := cb_new
+	}
+
+	ClearClipboardInitializing(cbLockKey)
 }

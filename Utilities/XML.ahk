@@ -70,14 +70,14 @@ XMLTransform_cb(tfType, wrapType:="") {
 
 /**
  * Transform and wrap text for use in XML/XSL
- * @param {String} text Text to transform and wrap
+ * @param {String} startText Text to transform and wrap
  * @param {String} tfType Type of {@link XMLTransform()} transformation to apply
  * @param {String} wrapType Type of wrapping to apply to transformed text
  * @returns {String} String resulting from modifying text
  */
-XMLWrap(text, tfType, wrapType) {
+XMLWrap(startText, tfType, wrapType) {
 	/** @type {String} */
-	startText := text, newText := "", nameText := ""
+	text := startText, newText := "", nameText := ""
 	if (tfType != "empty") {
 		newText := XMLTransform(text, tfType)
 	}
@@ -109,16 +109,26 @@ XMLWrap(text, tfType, wrapType) {
 		newText := "<" . startText . ">" . newText . "</" . startText . ">"
 	}
 	else if (wrapType = "variable") {
-		if (InStr(newText, "`r`n")) {
-			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+		if (tfType = "select") {
+			newText := "<xsl:variable name=`"" . nameText . "`" select=`"" . newText . "`"/>"
 		}
-		newText := "<xsl:variable name=`"" . nameText . "`">" . newText . "</xsl:variable>"
+		else {
+			if (InStr(newText, "`r`n")) {
+				newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+			}
+			newText := "<xsl:variable name=`"" . nameText . "`">" . newText . "</xsl:variable>"
+		}
 	}
 	else if (wrapType = "attribute") {
-		if (InStr(newText, "`r`n")) {
-			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+		if (tfType = "select") {
+			newText := "<xsl:attribute name=`"" . nameText . "`" select=`"" . newText . "`"/>"
 		}
-		newText := "<xsl:attribute name=`"" . nameText . "`">" . newText . "</xsl:attribute>"
+		else {
+			if (InStr(newText, "`r`n")) {
+				newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+			}
+			newText := "<xsl:attribute name=`"" . nameText . "`">" . newText . "</xsl:attribute>"
+		}
 	}
 	return newText
 }
@@ -127,7 +137,6 @@ XMLWrap(text, tfType, wrapType) {
  * Transform text for use in XML/XSL
  * 
  * Supports encoding/decoding, commenting/uncommenting, and generating various XSL tags using provided text
- * 
  * @param {String} startText Text to transform
  * @param {String} tfType Type transformation to apply
  * @returns {String} String resulting from transforming text
