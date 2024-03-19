@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 
-class StringType {
+Class StringType {
 	/**
 	 * Type of data contained in string
 	 * @type {'empty'|'integer'|'float'|'number'|'digit'|'xdigit'|'upper'|'lower'|'alpha'|'alnum'|'space'|'time'}

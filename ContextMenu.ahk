@@ -82,8 +82,8 @@ ReloadMenu() {
 	}
 	CustomContextMenu.Rename(selectedTitlePrev, selectedTitle)
 
-	for reload in SubMenuReloads {
-		reload()
+	for menuReload in SubMenuReloads {
+		menuReload()
 	}
 }
 
@@ -99,7 +99,7 @@ MenuItemTextTrim(val) {
 /**
  * Matrix of string components
  */
-class MenuText {
+Class MenuText {
 	/**
 	 * Location trim will occur if trimming is necessary
 	 * @type {''|'middle'|'end'}
@@ -361,7 +361,6 @@ global xslChooseVar := XMLTransformAction.Bind("choose","variable")
 
 global xslAttr := XMLTransformAction.Bind("","attribute")
 global xslEmptyAttr := XMLTransformAction.Bind("empty","attribute")
-global xslSelectAttr := XMLTransformAction.Bind("select","attribute")
 global xslValueOfAttr := XMLTransformAction.Bind("valueOf","attribute")
 global xslCopyOfAttr := XMLTransformAction.Bind("copyOf","attribute")
 global xslIfAttr := XMLTransformAction.Bind("if","attribute")
@@ -418,8 +417,6 @@ AttributeMenu.Add("#&SELF", xslAttr)
 AttributeMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
 AttributeMenu.Add("#&EMPTY", xslEmptyAttr)
 AttributeMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
-AttributeMenu.Add("se&lect", xslSelectAttr)
-AttributeMenu.SetIcon("se&lect", "Images\XML.png",, 0)
 AttributeMenu.Add("&value-of", xslValueOfAttr)
 AttributeMenu.SetIcon("&value-of", "Images\XML.png",, 0)
 AttributeMenu.Add("&copy-of", xslCopyOfAttr)
@@ -519,6 +516,7 @@ MarkSelectMode()
  * Switch to paste mode and updates menu accordingly
  */
 MarkPasteMode() {
+	global inputMode
 	inputMode := "paste"
 	CustomContextMenu.Check(copiedTitle)
 	CustomContextMenu.Uncheck(selectedTitle)
@@ -540,6 +538,7 @@ PasteMode(vars*) {
  * Switch to select mode and updates menu accordingly
  */
 MarkSelectMode() {
+	global inputMode
 	inputMode := "select"
 ;	MsgBox %inputMode%
 	CustomContextMenu.Check(selectedTitle)

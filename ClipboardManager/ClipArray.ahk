@@ -2,7 +2,7 @@
 #Include ../Utilities/General.ahk
 #Include CustomClip.ahk
 
-class ClipArray {
+Class ClipArray {
 	/**
 	 * Index of currently selected clip
 	 * @type {Integer}
@@ -20,10 +20,6 @@ class ClipArray {
 	 * @type {Array}
 	 */
 	clips := []
-
-	__New() {
-		this.AppendClipboard()
-	}
 
 	/** @returns {CustomClip} */
 	__Item[index] {
@@ -57,7 +53,10 @@ class ClipArray {
 	 */
 	RemoveAt(index, length := 1) {
 		this.clips.RemoveAt(index, length)
-		this.Select(Min(this.selectedIdx, this.Length))
+		if (this.selectedIdx >= index) {
+			newIdx := (this.selectedIdx >= (index + length)) ? (this.selectedIdx - length) : (index)
+			this.Select(Min(newIdx, this.Length))
+		}
 	}
 
 	/**
@@ -73,12 +72,17 @@ class ClipArray {
 	/**
 	 * Add clip to the end of array, trim array to max allowed size, and update selected index
 	 * @param {CustomClip} clip Clip to be added to array
+	 * @param {true|false} soft
+	 * 
+	 * true: Update selected index
+	 * 
+	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
-	Add(clip) {
+	Add(clip, soft := false) {
 		this.Push(clip)
 		if (this.Length > this.maxSize)
 			this.RemoveAt(1, this.Length - this.maxSize)
-		this.Select(this.Length)
+		this.Select(this.Length, soft)
 	}
 
 	/**
@@ -100,33 +104,32 @@ class ClipArray {
 	AppendClipboard(dataType := "") {
 		clip := (dataType != "binary") ? A_Clipboard : ""
 		if (clip != "") {
-			this.Add(CustomClip(clip))
+			this.Add(CustomClip(clip, "text", ClipboardAll()), true)
 		}
 		else {
 			clip := ClipboardAll()
 			if (clip.Size > 0)
-				this.Add(CustomClip(clip, "binary"))
+				this.Add(CustomClip(clip, "binary"), true)
 		}
 	}
 
 	/**
 	 * Select clip by index and optionally paste the newly selected {@link CustomClip} clip
 	 * @param {Integer} index Index of clip to select
-	 * @param {true|false} andPaste
+	 * @param {true|false} soft
 	 * 
-	 * true: Paste newly selected {@link CustomClip} clip
+	 * true: Update selected index
 	 * 
-	 * false: Select {@link CustomClip} clip without pasting
+	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
-	Select(index, andPaste := false) {
+	Select(index, soft := false) {
 		if (this.Length = 0)
 			return
 		this.selectedIdx := Mod(index, this.Length)
 		if (this.selectedIdx = 0)
 			this.selectedIdx := this.Length
-		this.selected.Select()
-		if (andPaste)
-			this.PasteClip()
+		if (!soft)
+			this.Apply()
 	}
 
 	/**
@@ -136,14 +139,14 @@ class ClipArray {
 	 * Positive: Shift selection toward most recent clips
 	 * 
 	 * Negative: Shift selection toward oldest clips
-	 * @param {true|false} andPaste
+	 * @param {true|false} soft
 	 * 
-	 * true: Paste newly selected {@link CustomClip} clip
+	 * true: Update selected index
 	 * 
-	 * false: Select {@link CustomClip} clip without pasting
+	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
-	ShiftSelect(increment, andPaste := false) {
-		this.Select(this.selectedIdx + increment, andPaste)
+	ShiftSelect(increment, soft := false) {
+		this.Select(this.selectedIdx + increment, soft)
 	}
 
 	/**
@@ -167,11 +170,20 @@ class ClipArray {
 	/**
 	 * Paste clip by index. If no index is provided, then instead paste currently selected clip.
 	 * @param {Integer} index Index of {@link CustomClip} clip to paste
+	 * @param {true|false} select
+	 * 
+	 * true: Select and paste clip
+	 * 
+	 * false: Paste clip without selecting it
 	 */
-	PasteClip(index := -1) {
+	PasteClip(index := -1, select := false) {
 		if (index < 0)
 			this.selected.Paste()
-		else 
+		else if (select) {
+			this.Select(index)
+			this.selected.Paste()
+		}
+		else
 			this[index].Paste()
 	}
 
@@ -183,6 +195,13 @@ class ClipArray {
 		tempStr := this.ToString(mode)
 		if (StrLen(tempStr))
 			PasteValue(tempStr)
+	}
+
+	/**
+	 * Replace clipboard content with content of selected clip
+	 */
+	Apply() {
+		this.selected.Apply()
 	}
 
 	/**

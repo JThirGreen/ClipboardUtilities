@@ -120,15 +120,10 @@ XMLWrap(startText, tfType, wrapType) {
 		}
 	}
 	else if (wrapType = "attribute") {
-		if (tfType = "select") {
-			newText := "<xsl:attribute name=`"" . nameText . "`" select=`"" . newText . "`"/>"
+		if (InStr(newText, "`r`n")) {
+			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
 		}
-		else {
-			if (InStr(newText, "`r`n")) {
-				newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
-			}
-			newText := "<xsl:attribute name=`"" . nameText . "`">" . newText . "</xsl:attribute>"
-		}
+		newText := "<xsl:attribute name=`"" . nameText . "`">" . newText . "</xsl:attribute>"
 	}
 	return newText
 }

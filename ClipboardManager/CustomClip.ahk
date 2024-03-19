@@ -2,18 +2,24 @@
 #Include ..\Utilities\Clipboard.ahk
 #Include ..\ContextMenu.ahk
 
-class CustomClip {
+Class CustomClip {
 	/**
 	 * Type of content in this clip
 	 * @type {String}
 	 */
-	type := ""
+	_type := ""
 
 	/**
 	 * Clip content
 	 * @type {Any}
 	 */
 	value := ""
+
+	/**
+	 * Raw clip content
+	 * @type {ClipboardAll()}
+	 */
+	clip := ""
 
 	/**
 	 * Name generated based on content
@@ -30,18 +36,41 @@ class CustomClip {
 	/**
 	 * @param {Any} content Clip content
 	 * @param {String} datatype Type of content in clip
+	 * @param {ClipboardAll()} clip Optional raw clip content
 	 */
-	__New(content, datatype := "text") {
-		this.type := datatype
+	__New(content, datatype := "text", clip := "") {
+		this._type := datatype
 		this.value := content
+		this.clip := clip
 		/** @type {MenuText} */
-		clipMenuText := {}
-		if (datatype = "text")
-			clipMenuText := MenuText(content)
-		else
-			clipMenuText := MenuText(datatype . " data")
+		clipMenuText := MenuText((datatype = "text") ? (content) : (datatype . " data"))
 		this.name := clipMenuText.Value
 		this.title := clipMenuText.Text
+	}
+
+	content {
+		get {
+			if (this.clip != "") {
+				return this.clip
+			}
+			else if (this._type = "binary") {
+				return this.value
+			}
+			else {
+				return this.ToString()
+			}
+		}
+	}
+
+	type {
+		get {
+			if (this.clip != "") {
+				return "binary"
+			}
+			else {
+				return this._type
+			}
+		}
 	}
 	
 	/**
@@ -59,18 +88,13 @@ class CustomClip {
 	 * Temporarily use clipboard to paste content of clip
 	 */
 	Paste() {
-		if (this.type = "binary") {
-			PasteValue(this.value, this.type, true)
-		}
-		else {
-			PasteValue(this.ToString())
-		}
+		PasteValue(this.content, this.type, true)
 	}
 	
 	/**
 	 * Replace clipboard content with content of this clip
 	 */
-	Select() {
-		SetClipboardValue(this.value, this.type)
+	Apply() {
+		SetClipboardValue(this.content, this.type)
 	}
 }

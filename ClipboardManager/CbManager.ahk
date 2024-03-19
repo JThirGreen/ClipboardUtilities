@@ -31,6 +31,12 @@ global cbArrayReload := true
  */
 global ClipboardMenuItems := 4
 
+/**
+ * Flag to mark whether or not CB change manager is enabled
+ * @type {true|false}
+ */
+global CbChangeManagerEnabled := true
+
 
 ;-----------------------------+
 ;    Func Obj definitions     |
@@ -63,21 +69,25 @@ global pasteCSV2Cb := CbManagerMenuAction.Bind("paste","csv")
 ;-----------------------------+
 /** @type {Menu} */
 global CustomClipboardMenu := Menu()
-CustomClipboardMenu.Add()
 /** @type {Menu} */
 global CustomClipboardContentMenu := Menu()
-CustomClipboardContentMenu.Add()
-CustomContextMenu.Insert("4&")
-CustomContextMenu.Insert("4&", "Clipboard &List", CustomClipboardMenu)
-InitCbManager()
 
-EnableCbChangeManager()
 
 /**
- * Initialize CB Manager and related menu
+ * Initialize CB Manager
  */
 InitCbManager() {
 	ClipboardToCbManager()
+	InitCbManagerMenu()
+	EnableCbChangeManager()
+}
+
+/**
+ * Initialize CB Manager menu
+ */
+InitCbManagerMenu() {
+	CustomContextMenu.Insert("4&")
+	CustomContextMenu.Insert("4&", "Clipboard &List", CustomClipboardMenu)
 	ReloadCustomClipboardMenu()
 	SubMenuReloads.Push(ReloadCustomClipboardMenu)
 }
@@ -87,8 +97,11 @@ InitCbManager() {
  * @param {Integer} delay Number of milliseconds to wait before enabling
  */
 EnableCbChangeManager(delay := 500) {
-	if (delay = 0)
+	global CbChangeManagerEnabled
+	if (delay = 0) {
 		OnClipboardChange(OnCbChangeManager)
+		CbChangeManagerEnabled := true
+	}
 	else {
 		delay := 0 - Abs(delay) ; Force negative to only run timer once
 		SetTimer(EnableCbChangeManager_Timer, delay)
@@ -107,10 +120,14 @@ EnableCbChangeManager_Timer() {
  * @param {Integer} EnableAfter 
  */
 DisableCbChangeManager(EnableAfter := 0) {
-	SetTimer(EnableCbChangeManager_Timer, 0) ; Delete existing timer if one is still active
-	OnClipboardChange(OnCbChangeManager, 0)
-	if (EnableAfter > 0)
-		EnableCbChangeManager(EnableAfter) 
+	global CbChangeManagerEnabled
+	if (CbChangeManagerEnabled) {
+		SetTimer(EnableCbChangeManager_Timer, 0) ; Delete existing timer if one is still active
+		OnClipboardChange(OnCbChangeManager, 0)
+		CbChangeManagerEnabled := false
+		if (EnableAfter > 0)
+			EnableCbChangeManager(EnableAfter)
+	}
 }
 
 /**
@@ -123,7 +140,7 @@ ReloadCustomClipboardMenu()
 		return
 	CustomClipboardMenu.Delete()
 	CustomClipboardContentMenu.Delete()
-	
+
 	CustomClipboardMenu.Add("&Clear", ClearCbArray)
 	CustomClipboardMenu.Add("Copy &List", copyList2Cb)
 	CustomClipboardMenu.Add("Copy CSV", copyCSV2Cb)
@@ -136,17 +153,17 @@ ReloadCustomClipboardMenu()
 		if (A_Index = 1)
 			CustomClipboardMenu.Add()
 		funcInstance := ClipMenuAction.Bind(A_Index)
-		menuText := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
-		menuText .= ": " . cbArray[A_Index].title . Chr(0xA0)
+		menuTitle := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
+		menuTitle .= ": " . cbArray[A_Index].title . Chr(0xA0)
 		
 		if (startIndex <= A_Index && A_Index < endIndex) {
-			CustomClipboardMenu.Add(menuText, funcInstance)
+			CustomClipboardMenu.Add(menuTitle, funcInstance)
 			if (A_Index = Max(1, cbArray.selectedIdx))
-					CustomClipboardMenu.Check(menuText)
+					CustomClipboardMenu.Check(menuTitle)
 		}
-		CustomClipboardContentMenu.Add(menuText, funcInstance)
+		CustomClipboardContentMenu.Add(menuTitle, funcInstance)
 		if (A_Index = Max(1, cbArray.selectedIdx))
-			CustomClipboardContentMenu.Check(menuText)
+			CustomClipboardContentMenu.Check(menuTitle)
 	}
 	if (cbArray.Length > ClipboardMenuItems)
 		CustomClipboardMenu.Add("&All (" . cbArray.Length . ")", CustomClipboardContentMenu)
@@ -169,7 +186,7 @@ ReloadCustomClipboardMenu()
  */
 ClipMenuAction(index, vars*) {
 	global cbArray, cbArrayReload
-	cbArray.Select(index, true)
+	cbArray.PasteClip(index, true)
 	cbArrayReload := true
 }
 
@@ -186,6 +203,7 @@ ClearCbArray(vars*) {
 ; Alt + Shift + V
 !+v::
 {
+	global mPosX, mPosY
 	DisableCbChangeManager()
 	MouseGetPos(&mPosX, &mPosY)
 	InitClipboard()
@@ -350,12 +368,14 @@ CbManagerAction() {
 			cbArray.PasteClip()
 		case "pastePrev":
 			DisableCbChangeManager()
-			cbArray.ShiftSelect(-1, true)
+			cbArray.Prev()
+			cbArray.PasteClip()
 			cbArrayReload := true
 			cbArray.Tooltip()
 		case "pasteNext":
 			DisableCbChangeManager()
-			cbArray.ShiftSelect(1, true)
+			cbArray.Next()
+			cbArray.PasteClip()
 			cbArrayReload := true
 			cbArray.Tooltip()
 		case "removeCurrent":
@@ -391,12 +411,13 @@ CbManagerAction() {
  */
 OnCbChangeManager(DataType) {
 	; Skip if clipboard is empty or is currently being modified by the script
-	if (clipboardInitializing || DataType = 0)
+	if (clipboardInitializing || DataType = 0) {
+		;AddToolTip("Clipboard Change Skipped")
 		return
+	}
 	else {
-		DisableCbChangeManager()
+		;AddToolTip("Clipboard Added")
 		ClipboardToCbManager((DataType = 1) ? "text" : "binary")
-		EnableCbChangeManager()
 	}
 }
 
@@ -410,14 +431,12 @@ OnCbChangeManager(DataType) {
  */
 ClipboardToCbManager(dataType := "") {
 	global cbArrayReload
-	DisableCbChangeManager()
 	cbArray.AppendClipboard(dataType)
-	EnableCbChangeManager()
 	cbArrayReload := true
 }
 
 /**
- * Add clip to CB array
+ * Add selected content to CB array
  * @param {String} mode Mode for {@link ClipArray.LoadString()} to evaluate selected content as
  */
 CopyToCbManager(mode := "") {
@@ -448,7 +467,16 @@ PasteFromCbManager(mode) {
  */
 CbArrayScroll(increment) {
 	global cbArray, cbArrayReload
-	cbArray.ShiftSelect(increment)
+	cbArray.ShiftSelect(increment, true)
 	cbArrayReload := true
 	cbArray.Tooltip()
+	SetTimer(CbArrayScrollEnd, -100)
+}
+
+/**
+ * Timer compatible function for applying scroll selection to active clipboard
+ */
+CbArrayScrollEnd() {
+	global cbArray
+	cbArray.Apply()
 }

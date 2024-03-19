@@ -22,3 +22,9 @@ TraySetIcon("Images\tray.png")
 global tempGlobal := ""
 
 ListLines(false)
+
+MainInit()
+
+MainInit() {
+	InitCbManager()
+}

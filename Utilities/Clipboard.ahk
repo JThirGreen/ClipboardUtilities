@@ -59,6 +59,7 @@ global inputMode := ""
  * false: Keeps {@link selectedClip} value in the clipboard
  */
 InitClipboard(restoreClipboard := true) {
+	global copiedText, copiedClip
 	cbLockKey := SetClipboardInitializing()
 
 	copiedText := A_Clipboard
@@ -87,12 +88,16 @@ SetClipboardInitializing() {
 
 /**
  * Clear clipboard lock flag if valid key is provided
+ * 
+ * A delay is applied to give {@link OnClipboardChange()} functions time to run before clearing lock flag
  * @param {true|false} key Key to clipboard lock flag
  */
 ClearClipboardInitializing(key) {
 	global clipboardInitializing
-	if (key)
+	if (key) {
+		Sleep(60)
 		clipboardInitializing := false
+	}
 }
 
 /**
