@@ -50,12 +50,17 @@ Class ClipArray {
 	 * Remove {@link CustomClip} clips from array and update selected index if needed
 	 * @param {Integer} index Index to start removing {@link CustomClip} clips from
 	 * @param {Integer} length Number of {@link CustomClip} clips to remove
+	 * @param {true|false} soft
+	 * 
+	 * true: Update selected index
+	 * 
+	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
-	RemoveAt(index, length := 1) {
+	RemoveAt(index, length := 1, soft := false) {
 		this.clips.RemoveAt(index, length)
 		if (this.selectedIdx >= index) {
 			newIdx := (this.selectedIdx >= (index + length)) ? (this.selectedIdx - length) : (index)
-			this.Select(Min(newIdx, this.Length))
+			this.Select(Min(newIdx, this.Length), soft)
 		}
 	}
 
@@ -81,7 +86,7 @@ Class ClipArray {
 	Add(clip, soft := false) {
 		this.Push(clip)
 		if (this.Length > this.maxSize)
-			this.RemoveAt(1, this.Length - this.maxSize)
+			this.RemoveAt(1, this.Length - this.maxSize, soft)
 		this.Select(this.Length, soft)
 	}
 
