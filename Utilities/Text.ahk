@@ -112,7 +112,7 @@ CaseScroll(increment) {
 	prevState := cbCaseState
 	/** @type {true|false} */
 	showToolTip := false
-	if (cbCaseState < 0) {
+	if (IsNumber(cbCaseState) and cbCaseState < 0) {
 		cbCaseTextOld := GetClipboardValue()
 		cbCaseState := GetTextCase(cbCaseTextOld)
 	}
