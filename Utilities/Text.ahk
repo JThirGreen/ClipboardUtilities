@@ -19,8 +19,7 @@ global cbCaseTextOld := ""
 global cbCaseTextNew := ""
 /**
  * State of case scrolling
- * @type {Integer|String}
-
+ *
  * -1: Inactive
  * 
  * 'numeric': Increment/decrement string as a number
@@ -32,6 +31,7 @@ global cbCaseTextNew := ""
  * 3: Capitilize Every Word
  * 
  * 4: ALL UPPERCASE
+ * @type {Integer|String}
  */
 global cbCaseState := -1
 /**
@@ -63,7 +63,31 @@ global cbCaseIsScrolling := false
 {
 	CaseScrollEnd()
 }
+*Esc::
+{
+	CaseScrollEnd(true)
+}
 #HotIf
+
+; Ctrl + Shift + mouse scroll wheel click right
+; From camel case transformation
+^+WheelRight::
+{
+	global cbCaseState
+	toCaseState := cbCaseState
+	CaseScrollEnd(true)
+	CaseTransform_cb("FromCamel", toCaseState)
+}
+
+; Ctrl + Shift + mouse scroll wheel click left
+; To camel case transformation
+^+WheelLeft::
+{
+	global cbCaseState
+	toCaseState := cbCaseState
+	CaseScrollEnd(true)
+	CaseTransform_cb("ToCamel", toCaseState)
+}
 
 !"::
 {
@@ -163,16 +187,19 @@ CaseScroll(increment) {
 
 /**
  * Paste pending case state change
+ * @param {true|false} cancel End scroll state without pasting
  */
-CaseScrollEnd() {
+CaseScrollEnd(cancel := false) {
 	global cbCaseTextOld, cbCaseTextNew, cbCaseState, cbCaseIsScrolling
 	cbCaseIsScrolling := false
 	if (cbCaseState != -1) {
 		cbCaseState := -1
-		PasteValue(cbCaseTextNew)
-		cbCaseTextOld := ""
-		cbCaseTextNew := ""
+		if (!cancel)
+			PasteValue(cbCaseTextNew)
 	}
+	cbCaseTextOld := ""
+	cbCaseTextNew := ""
+	RemoveToolTip()
 	return
 }
 

@@ -358,7 +358,7 @@ customClipboardWheelAction(increment) {
 CbManagerAction() {
 	global cbArrayStatus, cbArrayReload
 	SetTimer(EndAction, 0)
-	RemoveToolTip()
+	cbArray.Tooltip(false)
 	switch cbArrayStatus {
 		case "start":
 			cbArray.Tooltip()
@@ -371,18 +371,18 @@ CbManagerAction() {
 			cbArray.Prev()
 			cbArray.PasteClip()
 			cbArrayReload := true
-			cbArray.Tooltip()
+			cbArray.Tooltip(cbArrayStatus != "end")
 		case "pasteNext":
 			DisableCbChangeManager()
 			cbArray.Next()
 			cbArray.PasteClip()
 			cbArrayReload := true
-			cbArray.Tooltip()
+			cbArray.Tooltip(cbArrayStatus != "end")
 		case "removeCurrent":
 			DisableCbChangeManager()
 			cbArray.RemoveSelected()
 			cbArrayReload := true
-			cbArray.Tooltip()
+			cbArray.Tooltip(cbArrayStatus != "end")
 		case "end":
 			EnableCbChangeManager()
 		default:
