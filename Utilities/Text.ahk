@@ -371,18 +371,14 @@ IncrementNumericString(txt, incrementVal) {
  * @returns {String} Wrapped text
  */
 WrapText(txt, wrapMode) {
-	newTxt := ""
 	opener := ""
 	closer := ""
-	preText := ""
-	minLineSpace := ""
-	spaceChars := [Chr(9), Chr(32)]
 	
 	switch wrapMode {
 		case Chr(34):
-			return Chr(34) . txt . Chr(34)
+			return WrapTextSimple(txt, Chr(34))
 		case "'":
-			return "'" . txt . "'"
+			return WrapTextSimple(txt, "'")
 		case "(":
 			opener := "("
 			closer := ")"
@@ -394,49 +390,81 @@ WrapText(txt, wrapMode) {
 			closer := "]"
 	}
 	
-	if (InStr(txt, "`r`n")) {
-		skippedLines := 0
-		Loop Parse, txt, "`n", "`r"
-		{
-			txtLine := A_LoopField
-			lineIdx := A_Index - skippedLines
-			
-			if (lineIdx = 1) {
-				if (StrLen(txtLine) > 0) {
-					preLineText := SubstringLeading(txtLine, spaceChars)
-					if (StrLen(preLineText) > 0) {
-						txtLine := SubStr(txtLine, (StrLen(preLineText))<1 ? (StrLen(preLineText))-1 : (StrLen(preLineText)))
-					}
-					else {
-						txtLine := "`t" . txtLine
-					}
-					preText := preText . preLineText
+	return InStr(txt, "`r`n") ?
+		WrapTextMultiline(txt, opener, closer) :
+		WrapTextSimple(txt, opener, closer)
+}
+
+/**
+ * Simple text wrapping via concatenation while ignoring leading and trailing whitespace
+ * @param txt Text to add wrapping to
+ * @param opener Character or string to start wrapping with
+ * @param closer Character or string to end wrapping with
+ * 
+ * Identical to {opener} if not explicitly provided
+ * @returns {String} Wrapped text
+ */
+WrapTextSimple(txt, opener, closer := opener) {
+	regexNeedle := "s)^(\s*)(.+?)(\s*)$"
+	replacer := "$1" . opener . "$2" . closer . "$3"
+	return RegExReplace(txt, regexNeedle, replacer)
+}
+
+/**
+ * Wrap text and apply additional whitespace formatting
+ * @param txt Text to add wrapping to
+ * @param opener Character or string to start wrapping with
+ * @param closer Character or string to end wrapping with
+ * @returns {String} Wrapped text
+ */
+WrapTextMultiline(txt, opener, closer) {
+	/** String of formatted result */
+	newTxt := ""
+	/** String of leading whitespace found to add before opener */
+	preText := ""
+	/** String of minimum leading whitespace found to add after opener and before closer */
+	minLineSpace := ""
+	/** Array of characters to check for as leading whitespace */
+	spaceChars := [Chr(9), Chr(32)]
+	/** Count of leading new lines ignored */
+	skippedLines := 0
+
+	Loop Parse, txt, "`n", "`r"
+	{
+		txtLine := A_LoopField
+		lineIdx := A_Index - skippedLines
+		
+		if (lineIdx = 1) {
+			if (StrLen(txtLine) > 0) {
+				preLineText := SubstringLeading(txtLine, spaceChars)
+				if (StrLen(preLineText) > 0) {
+					txtLine := SubStr(txtLine, StrLen(preLineText))
 				}
 				else {
-					preText := "`r`n"
-					skippedLines++
+					txtLine := "`t" . txtLine
 				}
+				preText := preText . preLineText
 			}
-			else if (lineIdx > 1) {
-				if (StrLen(txtLine) > 0) {
-					leadingSpaces := SubstringLeading(txtLine, spaceChars)
-					if (lineIdx = 2 || StrLen(minLineSpace) > StrLen(leadingSpaces)) {
-						minLineSpace := leadingSpaces
-					}
-					txtLine := "`r`n`t" . txtLine
-				}
-				else {
-					txtLine := "`r`n"
-					skippedLines++
-				}
+			else {
+				preText := "`r`n"
+				skippedLines++
 			}
-			newTxt := newTxt . txtLine
 		}
-		newTxt := "`r`n" . minLineSpace . newTxt . "`r`n"
+		else if (lineIdx > 1) {
+			if (StrLen(txtLine) > 0) {
+				leadingSpaces := SubstringLeading(txtLine, spaceChars)
+				if (lineIdx = 2 || StrLen(minLineSpace) > StrLen(leadingSpaces)) {
+					minLineSpace := leadingSpaces
+				}
+				txtLine := "`r`n`t" . txtLine
+			}
+			else {
+				txtLine := "`r`n"
+				skippedLines++
+			}
+		}
+		newTxt := newTxt . txtLine
 	}
-	else {
-		newTxt := txt
-	}
-	newTxt := preText . opener . newTxt . minLineSpace . closer
-	return newTxt
+	newTxt := "`r`n" . minLineSpace . newTxt . "`r`n"
+	return preText . opener . newTxt . minLineSpace . closer
 }
