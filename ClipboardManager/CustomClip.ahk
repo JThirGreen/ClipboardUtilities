@@ -2,7 +2,7 @@
 #Include ..\Utilities\Clipboard.ahk
 #Include ..\ContextMenu.ahk
 
-Class CustomClip {
+class CustomClip {
 	/**
 	 * Type of content in this clip
 	 * @type {String}

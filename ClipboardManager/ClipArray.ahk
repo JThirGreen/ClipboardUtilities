@@ -1,8 +1,10 @@
 #Requires AutoHotkey v2.0
 #Include ../Utilities/General.ahk
+#Include ../Utilities/Array.ahk
+#Include ../Utilities/NestedArray.ahk
 #Include CustomClip.ahk
 
-Class ClipArray {
+class ClipArray {
 	/**
 	 * Index of currently selected clip
 	 * @type {Integer}
@@ -16,14 +18,30 @@ Class ClipArray {
 	maxSize := 20
 	
 	/**
-	 * Instance array variable for storing {@link CustomClip} clips
-	 * @type {Array}
+	 * Instance array variable for storing array of {@link CustomClip} clips
+	 * @type {NestedArray}
 	 */
-	clips := []
+	__clips := NestedArray()
+	clips {
+		get {
+			if (!this.__clips.Length)
+				this.AppendClipboard()
+			return this.__clips
+		}
+	}
 
 	/** @returns {CustomClip} */
-	__Item[index] {
-		get => this.clips[index]
+	__Item[index] => this.__clips.Get(index)
+
+	__Enum(NumberOfVars) {
+		i := 1
+		EnumClips(&clip) {
+			if (i > this.TotalLength)
+				return false
+			clip := this[i++]
+			return true
+		}
+		return EnumClips
 	}
 
 	/**
@@ -36,13 +54,21 @@ Class ClipArray {
 		}
 	}
 
-	Length => this.clips.Length
+	/**
+	 * Retrieve the length of the array.
+	 */
+	Length => this.__clips.Length
+
+	/**
+	 * Retrieve the flattened length of the array.
+	 */
+	TotalLength => this.__clips.TotalLength
 
 	/**
 	 * Remove all stored {@link CustomClip} clips and reset selected index
 	 */
 	Clear() {
-		this.clips := []
+		this.__clips := NestedArray()
 		this.selectedIdx := -1
 	}
 
@@ -57,10 +83,10 @@ Class ClipArray {
 	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
 	RemoveAt(index, length := 1, soft := false) {
-		this.clips.RemoveAt(index, length)
+		this.__clips.RemoveAt(index, length)
 		if (this.selectedIdx >= index) {
 			newIdx := (this.selectedIdx >= (index + length)) ? (this.selectedIdx - length) : (index)
-			this.Select(Min(newIdx, this.Length), soft)
+			this.Select(Min(newIdx, this.TotalLength), soft)
 		}
 	}
 
@@ -71,7 +97,7 @@ Class ClipArray {
 	 * @param {CustomClip} clips Clip(s) to add to array
 	 */
 	Push(clips*) {
-		this.clips.Push(clips*)
+		this.__clips.Push(ClipArray.Array2Clips(clips))
 	}
 
 	/**
@@ -87,15 +113,22 @@ Class ClipArray {
 		this.Push(clip)
 		if (this.Length > this.maxSize)
 			this.RemoveAt(1, this.Length - this.maxSize, soft)
-		this.Select(this.Length, soft)
+		this.Select(this.TotalLength, soft)
 	}
 
 	/**
 	 * Remove currently selected {@link CustomClip} clip from array and update selected index if needed
+	 * @param {Integer} indexOffset Offset from selected index to remove
 	 */
-	RemoveSelected() {
-		this.RemoveAt(this.selectedIdx)
-		this.Select(Min(this.selectedIdx, this.Length))
+	RemoveSelected(indexOffset := 0) {
+		selectIdx := this.selectedIdx
+		indexToRemove := selectIdx + indexOffset
+		if (indexToRemove > 0 && indexToRemove <= this.TotalLength) {
+			this.RemoveAt(indexToRemove)
+			if (selectIdx > indexToRemove)
+				selectIdx-- 
+			this.Select(Min(selectIdx, this.TotalLength))
+		}
 	}
 
 	/**
@@ -128,11 +161,11 @@ Class ClipArray {
 	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
 	Select(index, soft := false) {
-		if (this.Length = 0)
+		if (this.TotalLength = 0)
 			return
-		this.selectedIdx := Mod(index, this.Length)
+		this.selectedIdx := Mod(index, this.TotalLength)
 		if (this.selectedIdx = 0)
-			this.selectedIdx := this.Length
+			this.selectedIdx := this.TotalLength
 		if (!soft)
 			this.Apply()
 	}
@@ -206,7 +239,8 @@ Class ClipArray {
 	 * Replace clipboard content with content of selected clip
 	 */
 	Apply() {
-		this.selected.Apply()
+		if (this.Length)
+			this.selected.Apply()
 	}
 
 	/**
@@ -214,13 +248,10 @@ Class ClipArray {
 	 * 
 	 * Ignores maximum clip array size
 	 * @param {Array} arr Array to load {@link CustomClip} clips from
-	 * @param {String} contentType Type of content to be expected from array
 	 */
-	LoadArray(arr, contentType := "text") {
+	LoadArray(arr) {
 		this.Clear()
-		for arrIndex, arrValue in arr {
-			this.Push(CustomClip(arrValue, contentType))
-		}
+		this.Push(arr)
 		this.Select(0)
 	}
 
@@ -233,18 +264,18 @@ Class ClipArray {
 	 * @param {String} str String to evaluate
 	 * @param {String} mode Evaluation mode to use
 	 * 
-	 * 'list': Split string by new lines
+	 * 'list': Parse string as delimited
 	 * 
-	 * 'csv': Parse string as single CSV row
+	 * 'csv': Parse string as simple single CSV row
 	 * 
 	 * default: Add string to clip array
 	 */
 	LoadString(str, mode) {
 		switch StrLower(mode) {
 			case "list":
-				this.LoadArray(StrSplit(str, "`n", "`r"))
+				this.LoadArray(String2Array(str))
 			case "csv":
-				this.LoadArray(CSV2Array(str)[1])
+				this.LoadArray(SimpleCSV2Array(str)[1])
 			default:
 				this.Add(CustomClip(str))
 		}
@@ -272,7 +303,7 @@ Class ClipArray {
 		}
 		
 		cbArrayStr := ""
-		Loop this.Length {
+		Loop this.TotalLength {
 			if (A_Index > 1)
 				cbArrayStr .= separator
 		cbArrayStr .= this[A_Index].ToString()
@@ -290,12 +321,17 @@ Class ClipArray {
 	 */
 	Tooltip(show := true) {
 		if (show) {
-			tipText := "Clipboard (" . this.Length . "):`r`nClick to select`r`n"
+			if (!this.Length)
+				this.AppendClipboard()
 			
-			Loop this.Length {
+			tipText := "Clipboard (" . this.TotalLength . "):`r`nClick to select`r`n"
+			
+			Loop this.TotalLength {
 				tipText .= (A_Index = this.selectedIdx) ? "   >>" : ">>   "
 				tipText .= "|"
 				
+				if (Type(this[A_Index]) = "String")
+					MsgBox(String(A_Index) . "::" .  this[A_Index])
 				tipText .= this[A_Index].name . "`r`n"
 			}
 			
@@ -304,6 +340,33 @@ Class ClipArray {
 		else {
 			RemoveToolTip()
 		}
+	}
+
+	/**
+	 * Recursively parse array and convert all elements to {@link CustomClip}
+	 * @param arr Array to parse and convert to {@link CustomClip}
+	 * @returns {Array} 
+	 */
+	static Array2Clips(arr) {
+		if (!(arr is Array))
+			arr := [arr]
+		clips := []
+		for item in arr {
+			clip := ""
+			if (item is CustomClip)
+				clip := item				
+			else if (item is Array)
+				clip := this.Array2Clips(item)
+			else if (item is ClipboardAll)
+				clip := CustomClip(item, "binary")
+			else
+				clip := CustomClip(String(item))
+
+			if (!IsObject(clip))
+				clip := CustomClip("")
+			clips.Push(clip)
+		}
+		return clips
 	}
 }
 

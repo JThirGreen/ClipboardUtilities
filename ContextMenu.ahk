@@ -99,7 +99,7 @@ MenuItemTextTrim(val) {
 /**
  * Matrix of string components
  */
-Class MenuText {
+class MenuText {
 	/**
 	 * Location trim will occur if trimming is necessary
 	 * @type {''|'middle'|'end'}

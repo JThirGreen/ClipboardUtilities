@@ -1,8 +1,4 @@
 ﻿#Requires AutoHotkey v2.0
-#Include Utilities\General.ahk
-#Include Utilities\Text.ahk
-#Include Utilities\XML.ahk
-#Include ContextMenu.ahk
 #Include ClipboardManager\CbManager.ahk
 
 A_HotkeyInterval := 1000 ; Milliseconds

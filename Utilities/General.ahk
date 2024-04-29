@@ -1,6 +1,8 @@
 #Requires AutoHotkey v2.0
 
-Class StringType {
+CoordMode "ToolTip"
+
+class StringType {
 	/**
 	 * Type of data contained in string
 	 * @type {'empty'|'integer'|'float'|'number'|'digit'|'xdigit'|'upper'|'lower'|'alpha'|'alnum'|'space'|'time'}
@@ -120,10 +122,79 @@ RemoveToolTip() {
 }
 
 /**
- * Takes comma-separated string {csvStr} and returns it as an array
- * @param {String} csvStr comma-separated string
- * @returns {Array}
+ * Checks if number is odd using bitwise-and
+ * @param {Integer} num Number to check
  */
-CSV2Array(csvStr) {
-	return [StrSplit(csvStr, ",")]
+IsOdd(num) {
+	return (num & 1)
+}
+
+/**
+ * Checks if number is even using {@link IsOdd()}
+ * @param {Integer} num Number to check
+ */
+IsEven(num) {
+	return !IsOdd(num)
+}
+
+/**
+ * Stringify object to JSON formatted string
+ * @param {Object} obj Object to stringify
+ * @returns {String} 
+ */
+StringifyObject(obj) {
+	objStr := ""
+	
+	delimit := false
+	if (obj is Array){
+		objStr := "["
+		for value in obj {
+			if (delimit)
+				objStr .= ","
+			else
+				delimit := true
+			objStr .= StringifyObject(value)
+		}
+		objStr .= "]"
+
+		if (Type(obj) != "Array")
+			objStr := "{`"type`":`"" . Type(obj) . "`",`"items`":" . objStr . "}"
+	}
+	else if (IsObject(obj)){
+		objStr := "{"
+		objStr .= "`"type`":`"" . Type(obj) . "`""
+		objStr .= ",`"properties`":{"
+		for name, value in obj.OwnProps() {
+			if (delimit)
+				objStr .= ","
+			else
+				delimit := true
+			objStr .= "`"" . name . "`":" . StringifyObject(value)
+		}
+		objStr .= "}"
+		objStr .= "}"
+	}
+	else if (Type(obj) = "String") {
+		objStr := "`""
+		Loop Parse, obj {
+			switch A_LoopField {
+				case "`"":
+					objStr .= "\`""
+				case "`t":
+					objStr .= "\t"
+				case "`n":
+					objStr .= "\n"
+				case "`r":
+					objStr .= "\r"
+				default:
+					objStr .= A_LoopField
+			}
+		}
+		objStr .= "`""
+	}
+	else if (GetDataType(obj).type = "number")
+		objStr := String(obj)
+	else
+		objStr := "`"" . String(obj) . "`""
+	return objStr
 }

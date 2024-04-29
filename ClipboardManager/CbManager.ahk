@@ -1,8 +1,12 @@
 ﻿#Requires AutoHotkey v2.0
 #Include ..\ContextMenu.ahk
 #Include ..\Utilities\General.ahk
+#Include ..\Utilities\Text.ahk
+#Include ..\Utilities\XML.ahk
+#Include ..\Utilities\Array.ahk
 #Include ..\Utilities\Clipboard.ahk
 #Include ClipArray.ahk
+
 
 ;-----------------------------+
 ;    variable definitions     |
@@ -36,6 +40,12 @@ global ClipboardMenuItems := 4
  * @type {true|false}
  */
 global CbChangeManagerEnabled := true
+
+/**
+ * Time of when last CbManager action was performed
+ * @type {Integer}
+ */
+global LastCbManagerActionOn := A_TickCount
 
 
 ;-----------------------------+
@@ -77,6 +87,8 @@ global CustomClipboardContentMenu := Menu()
  * Initialize CB Manager
  */
 InitCbManager() {
+	while (DllCall("GetOpenClipboardWindow"))
+		Sleep(10)
 	ClipboardToCbManager()
 	InitCbManagerMenu()
 	EnableCbChangeManager()
@@ -146,10 +158,10 @@ ReloadCustomClipboardMenu()
 	CustomClipboardMenu.Add("Copy CSV", copyCSV2Cb)
 
 	halfStep := ClipboardMenuItems/2
-	centerIndex := Min(cbArray.Length - Floor(halfStep), Max(Ceil(halfStep), cbArray.selectedIdx))
+	centerIndex := Min(cbArray.TotalLength - Floor(halfStep), Max(Ceil(halfStep), cbArray.selectedIdx))
 	startIndex := Round((centerIndex + 0.5) - halfStep)
 	endIndex := Round((centerIndex + 0.5) + halfStep)
-	Loop cbArray.Length {
+	Loop cbArray.TotalLength {
 		if (A_Index = 1)
 			CustomClipboardMenu.Add()
 		funcInstance := ClipMenuAction.Bind(A_Index)
@@ -164,9 +176,11 @@ ReloadCustomClipboardMenu()
 		CustomClipboardContentMenu.Add(menuTitle, funcInstance)
 		if (A_Index = Max(1, cbArray.selectedIdx))
 			CustomClipboardContentMenu.Check(menuTitle)
+		if (cbArray.clips.GetRelativeArrayAndIndex(A_Index).IsLast)
+			CustomClipboardContentMenu.Add()
 	}
-	if (cbArray.Length > ClipboardMenuItems)
-		CustomClipboardMenu.Add("&All (" . cbArray.Length . ")", CustomClipboardContentMenu)
+	if (cbArray.TotalLength > ClipboardMenuItems)
+		CustomClipboardMenu.Add("&All (" . cbArray.TotalLength . ")", CustomClipboardContentMenu)
 	
 	CustomClipboardMenu.Add()
 	CustomClipboardMenu.Add("&Paste List", pasteList2Cb)
@@ -263,34 +277,69 @@ ClearCbArray(vars*) {
 
 #HotIf GetKeyState("Ctrl", "P") && GetKeyState("Shift", "P")
 	; Ctrl + Shift + V + left click
-	; Ctrl + Shift + V + Right arrow
 	; Ctrl + Shift + V + Enter
 	v & LButton::
-	v & Right::
 	v & Enter::
 	{
 		global cbArrayStatus
 		switch cbArrayStatus {
-			case "start","ready":
+			case "start","ready","newSelected","pasteCurrent":
+				cbArrayStatus := "pasteCurrent"
+				CbManagerAction()
+		}
+	}
+
+	; Ctrl + Shift + V + Right arrow
+	; Ctrl + Shift + V + Forward
+	v & Right::
+	v & XButton2::
+	v & Browser_Forward::
+	{
+		global cbArrayStatus, LastCbManagerActionOn
+		switch cbArrayStatus {
+			case "start","ready","pasteNext":
 				cbArrayStatus := "pasteNext"
 				CbManagerAction()
-			case "newSelected":
+			case "newSelected","pasteCurrent":
 				cbArrayStatus := "pasteCurrent"
 				CbManagerAction()
 		}
 	}
 	
 	; Ctrl + Shift + V + Left arrow
-	; Ctrl + Shift + V + Backspace
+	; Ctrl + Shift + V + Back
 	v & Left::
+	v & XButton1::
+	v & Browser_Back::
+	{
+		global cbArrayStatus
+		switch cbArrayStatus {
+			case "start","ready","pastePrev":
+				cbArrayStatus := "pastePrev"
+				CbManagerAction()
+			case "newSelected","removeCurrent":
+				cbArrayStatus := "removeCurrent"
+				CbManagerAction()
+		}
+	}
+	
+	; Ctrl + Shift + V + Backspace
 	v & BS::
 	{
 		global cbArrayStatus
 		switch cbArrayStatus {
-			case "start","ready":
-				cbArrayStatus := "pastePrev"
+			case "start","ready","newSelected","removePrev":
+				cbArrayStatus := "removePrev"
 				CbManagerAction()
-			case "newSelected":
+		}
+	}
+	
+	; Ctrl + Shift + V + Delete
+	v & Del::
+	{
+		global cbArrayStatus
+		switch cbArrayStatus {
+			case "start","ready","newSelected","removeCurrent":
 				cbArrayStatus := "removeCurrent"
 				CbManagerAction()
 		}
@@ -300,17 +349,22 @@ ClearCbArray(vars*) {
 	v & LButton up::
 	v & Right up::
 	v & Enter up::
+	v & XButton2 up::
+	v & Browser_Forward up::
 	{
 		global cbArrayStatus := "ready"
 	}
 	
 	; Ctrl + Shift + V + remove action key (Released)
 	v & Left up::
+	v & Del up::
 	v & BS up::
+	v & XButton1 up::
+	v & Browser_Back up::
 	{
 		global cbArrayStatus
 		switch cbArrayStatus {
-			case "removeCurrent":
+			case "removeCurrent","removePrev","removeNext":
 				cbArrayStatus := "newSelected"
 			default:
 				cbArrayStatus := "ready"
@@ -356,7 +410,7 @@ customClipboardWheelAction(increment) {
  * Function for executing CB Manager actions based on CB array status
  */
 CbManagerAction() {
-	global cbArrayStatus, cbArrayReload
+	global cbArrayStatus, cbArrayReload, LastCbManagerActionOn
 	SetTimer(EndAction, 0)
 	cbArray.Tooltip(false)
 	switch cbArrayStatus {
@@ -383,11 +437,22 @@ CbManagerAction() {
 			cbArray.RemoveSelected()
 			cbArrayReload := true
 			cbArray.Tooltip(cbArrayStatus != "end")
+		case "removePrev":
+			DisableCbChangeManager()
+			cbArray.RemoveSelected(-1)
+			cbArrayReload := true
+			cbArray.Tooltip(cbArrayStatus != "end")
+		case "removeNext":
+			DisableCbChangeManager()
+			cbArray.RemoveSelected(1)
+			cbArrayReload := true
+			cbArray.Tooltip(cbArrayStatus != "end")
 		case "end":
 			EnableCbChangeManager()
 		default:
 			EndAction()
 	}
+	LastCbManagerActionOn := A_TickCount
 	
 	/**
 	 * Local function for cleaning up pending action if outside of expected states
