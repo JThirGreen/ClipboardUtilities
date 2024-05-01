@@ -2,7 +2,9 @@
 # Context Menu
 ### Hot Keys
 - `Alt` + `Shift` + `Space`  
-Opens full context menu
+Opens full context menu  
+![image](https://github.com/JThirGreen/ClipboardUtilities/assets/35150682/c696500c-5585-4ab2-85c9-cab6bd30f792)
+
 
 ## Clipboard Manager
 ### Hot Keys
