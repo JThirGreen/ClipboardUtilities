@@ -45,10 +45,16 @@ class SubsetBounds {
 		this.SubsetLength := SubsetLength
 		this.Index := Index
 
-		halfStep := this.SubsetLength/2
-		centerIndex := Min(this.FullLength - Floor(halfStep), Max(Ceil(halfStep), this.Index))
-		this.Start := Round((centerIndex + 0.5) - halfStep)
-		this.End := Round((centerIndex + 0.5) + halfStep) - 1
+		if (this.SubsetLength >= this.FullLength) {
+			this.Start := 1
+			this.End := this.FullLength
+		}
+		else {
+			halfStep := this.SubsetLength/2
+			centerIndex := Min(this.FullLength - Floor(halfStep), Max(Ceil(halfStep), this.Index))
+			this.Start := Round((centerIndex + 0.5) - halfStep)
+			this.End := Round((centerIndex + 0.5) + halfStep) - 1
+		}
 	}
 }
 
