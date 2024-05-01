@@ -1,10 +1,9 @@
 # Clipboard Utilities
-# Context Menu
+## Context Menu
 ### Hot Keys
 - `Alt` + `Shift` + `Space`  
-Opens full context menu  
-![image](https://github.com/JThirGreen/ClipboardUtilities/assets/35150682/c696500c-5585-4ab2-85c9-cab6bd30f792)
-
+Opens full context menu
+<p align="center"><img src="./assets/images/Main_Context_Menu_Example.png" alt="Main Context Menu Example" style="border: 1px solid #808080;"/></p>
 
 ## Clipboard Manager
 ### Hot Keys
@@ -48,8 +47,9 @@ Activates clip manager tooltip and (while held) enables the following clip manag
 - `Ctrl` + `Shift` + `Scroll Up`  
 `Ctrl` + `Shift` + `Scroll Down`  
 Takes selected text and shifts it to the next higher case state. The currently selected case state is shown in the form of a tooltip.
-  - `Enter` causes the currently selected case state to be applied to the selected text. If currently selected case state is unchanged for a small period of time, then it get auto-applied.
-  - `Esc` cancels the transformation and prevents it from being auto-applied.
+  - `Enter` causes the currently selected case state to be applied to the selected text. If currently selected case state is unchanged for a small period of time, then it get auto-applied. <p align="center"><img src="./assets/images/Case_Scroll_Example.gif" alt="Case Scroll Example"/></p>
+  - `Esc` cancels the transformation and prevents it from being auto-applied. <p align="center"><img src="./assets/images/Case_Scroll_Cancel_Example.gif" alt="Case Scroll Cancel Example"/></p>
+
 ``` mermaid
 flowchart LR
   A[lowercase]
