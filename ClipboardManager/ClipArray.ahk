@@ -111,8 +111,8 @@ class ClipArray {
 	 */
 	Add(clip, soft := false) {
 		this.Push(clip)
-		if (this.Length > this.maxSize)
-			this.RemoveAt(1, this.Length - this.maxSize, soft)
+		if (this.TotalLength > this.maxSize)
+			this.RemoveAt(1, this.TotalLength - this.maxSize, soft)
 		this.Select(this.TotalLength, soft)
 	}
 
@@ -324,16 +324,24 @@ class ClipArray {
 			if (!this.Length)
 				this.AppendClipboard()
 			
-			tipText := "Clipboard (" . this.TotalLength . "):`r`nClick to select`r`n"
-			
-			Loop this.TotalLength {
-				tipText .= (A_Index = this.selectedIdx) ? "   >>" : ">>   "
+			listBounds := SubsetBounds(this.TotalLength, 20, this.selectedIdx)
+
+			tipText := "Clipboard (" . listBounds.FullLength . "):`r`nClick to select`r`n"
+			if (listBounds.Start > 1)
+				tipText .= "(" . listBounds.Start - 1 . ")`r`n"
+
+			Loop listBounds.Length {
+				clipIdx := A_Index - 1 + listBounds.Start
+				tipText .= (clipIdx = this.selectedIdx) ? "   >>" : ">>   "
 				tipText .= "|"
 				
-				if (Type(this[A_Index]) = "String")
-					MsgBox(String(A_Index) . "::" .  this[A_Index])
-				tipText .= this[A_Index].name . "`r`n"
+				if (Type(this[clipIdx]) = "String")
+					MsgBox(String(A_Index) . " [" . StringifyObject(listBounds) . "]::" .  this[clipIdx])
+				tipText .= this[clipIdx].name . "`r`n"
 			}
+
+			if (listBounds.End < listBounds.FullLength)
+				tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
 			
 			AddToolTip(tipText, 5000)
 		}

@@ -157,10 +157,8 @@ ReloadCustomClipboardMenu()
 	CustomClipboardMenu.Add("Copy &List", copyList2Cb)
 	CustomClipboardMenu.Add("Copy CSV", copyCSV2Cb)
 
-	halfStep := ClipboardMenuItems/2
-	centerIndex := Min(cbArray.TotalLength - Floor(halfStep), Max(Ceil(halfStep), cbArray.selectedIdx))
-	startIndex := Round((centerIndex + 0.5) - halfStep)
-	endIndex := Round((centerIndex + 0.5) + halfStep)
+	listLimitBounds := SubsetBounds(cbArray.TotalLength, ClipboardMenuItems, cbArray.selectedIdx)
+	
 	Loop cbArray.TotalLength {
 		if (A_Index = 1)
 			CustomClipboardMenu.Add()
@@ -168,7 +166,7 @@ ReloadCustomClipboardMenu()
 		menuTitle := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
 		menuTitle .= ": " . cbArray[A_Index].title . Chr(0xA0)
 		
-		if (startIndex <= A_Index && A_Index < endIndex) {
+		if (listLimitBounds.Start <= A_Index && A_Index <= listLimitBounds.End) {
 			CustomClipboardMenu.Add(menuTitle, funcInstance)
 			if (A_Index = Max(1, cbArray.selectedIdx))
 					CustomClipboardMenu.Check(menuTitle)
@@ -396,12 +394,13 @@ ClearCbArray(vars*) {
  */
 customClipboardWheelAction(increment) {
 	DisableCbChangeManager()
-	global cbArrayStatus
+	global cbArrayStatus, LastCbManagerActionOn
 	switch cbArrayStatus {
 		case "start","ready","newSelected":
 			CbArrayScroll(increment)
 			cbArrayStatus := "newSelected"
 	}
+	LastCbManagerActionOn := A_TickCount
 	EnableCbChangeManager()
 	return
 }
@@ -458,9 +457,17 @@ CbManagerAction() {
 	 * Local function for cleaning up pending action if outside of expected states
 	 */
 	EndAction() {
-		MsgBox("- CB Manager {" . cbArrayStatus . "} - `r`nSomething went wrong. Returning to default state.")
-		cbArrayStatus := "end"
-		CbManagerAction() ; Ensure the "end" action is executed
+		msSinceLastAction := A_TickCount - LastCbManagerActionOn
+		if (msSinceLastAction > 10000) {
+			if (cbArrayStatus != "end") {
+				MsgBox("- CB Manager {" . cbArrayStatus . " (" . msSinceLastAction . " ms ago)} - `r`nSomething went wrong. Returning to default state.")
+				cbArrayStatus := "end"
+			}
+			CbManagerAction() ; Ensure the "end" action is executed
+		}
+		else {
+			SetTimer(EndAction, -500)
+		}
 	}
 	if (cbArrayStatus != "end")
 		SetTimer(EndAction, -10000) ; If any state other than "end" lasts for too long, assume it is stuck and trigger EndAction()

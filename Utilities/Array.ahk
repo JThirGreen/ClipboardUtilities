@@ -1,6 +1,57 @@
 #Requires AutoHotkey v2.0
 #Include General.ahk
 
+class SubsetBounds {
+	
+	/**
+	 * FullLength provided upon creation
+	 * @type {Integer}
+	 */
+	FullLength := -1
+	/**
+	 * SubsetLength provided upon creation
+	 * @type {Integer}
+	*/
+	SubsetLength := -1
+	/**
+	 * Index provided upon creation
+	 * @type {Integer}
+	*/
+	Index := -1
+	/**
+	 * Index where subset starts
+	 * @type {Integer}
+	*/
+	Start := -1
+	/**
+	 * Index where subset ends
+	 * @type {Integer}
+	*/
+	End := -1
+	/**
+	 * Length of subset
+	 * @type {Integer}
+	 */
+	Length => this.End - this.Start + 1
+
+	/**
+	 * Takes the full length of an array, the desired length of a subset, and an index of the desired center point and calculates the start and end indexes of the subset bounds
+	 * @param FullLength Full length of an array
+	 * @param SubsetLength Desired length of a subset
+	 * @param Index Index
+	 */
+	__New(FullLength, SubsetLength, Index) {
+		this.FullLength := FullLength
+		this.SubsetLength := SubsetLength
+		this.Index := Index
+
+		halfStep := this.SubsetLength/2
+		centerIndex := Min(this.FullLength - Floor(halfStep), Max(Ceil(halfStep), this.Index))
+		this.Start := Round((centerIndex + 0.5) - halfStep)
+		this.End := Round((centerIndex + 0.5) + halfStep) - 1
+	}
+}
+
 /**
  * Takes comma-separated string {csvStr} and returns it as an array
  * @param {String} csvStr comma-separated string
@@ -122,7 +173,7 @@ GetDelimiterFromString(str) {
 	if (Type(str) != "String" || str = "")
 		return ""
 
-	validDelimiters := ",`t`n"
+	validDelimiters := ",`t"
 	firstQuotPos := InStr(str, "`"")
 	if (firstQuotPos) {
 		delimiter := ""
@@ -133,6 +184,7 @@ GetDelimiterFromString(str) {
 					quotCount++
 				else if (IsOdd(quotCount)) {
 					delimiter := A_LoopField
+					break
 				}
 			}
 		}
