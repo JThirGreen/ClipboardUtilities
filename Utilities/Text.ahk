@@ -468,3 +468,7 @@ WrapTextMultiline(txt, opener, closer) {
 	newTxt := "`r`n" . minLineSpace . newTxt . "`r`n"
 	return preText . opener . newTxt . minLineSpace . closer
 }
+
+CleanNewLines(str) {
+	return StrReplace(StrReplace(str,'`r`n','`n'),'`r','')
+}

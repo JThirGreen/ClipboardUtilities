@@ -68,10 +68,10 @@ CbManagerMenuAction(action, mode, vars*) {
 	}
 }
 
-global copyList2Cb := CbManagerMenuAction.Bind("copy","List")
-global copyCSV2Cb := CbManagerMenuAction.Bind("copy","csv")
 global pasteList2Cb := CbManagerMenuAction.Bind("paste","List")
+global pasteCommaList2Cb := CbManagerMenuAction.Bind("paste","CommaList")
 global pasteCSV2Cb := CbManagerMenuAction.Bind("paste","csv")
+global pasteTSV2Cb := CbManagerMenuAction.Bind("paste","tsv")
 
 
 ;-----------------------------+
@@ -81,6 +81,12 @@ global pasteCSV2Cb := CbManagerMenuAction.Bind("paste","csv")
 global CustomClipboardMenu := Menu()
 /** @type {Menu} */
 global CustomClipboardContentMenu := Menu()
+/** @type {Menu} */
+global CustomClipboardPasteMenu := Menu()
+CustomClipboardPasteMenu.Add("&List", pasteList2Cb)
+CustomClipboardPasteMenu.Add("(&,) Comma List", pasteCommaList2Cb)
+CustomClipboardPasteMenu.Add("&CSV", pasteCSV2Cb)
+CustomClipboardPasteMenu.Add("&TSV", pasteTSV2Cb)
 
 
 /**
@@ -154,8 +160,11 @@ ReloadCustomClipboardMenu()
 	CustomClipboardContentMenu.Delete()
 
 	CustomClipboardMenu.Add("&Clear", ClearCbArray)
-	CustomClipboardMenu.Add("Copy &List", copyList2Cb)
-	CustomClipboardMenu.Add("Copy CSV", copyCSV2Cb)
+	CustomClipboardMenu.Add()
+	CustomClipboardMenu.Add("&Paste", CustomClipboardPasteMenu)
+	if (cbArray.Length = 0) {
+		CustomClipboardMenu.Disable("&Paste")
+	}
 
 	listLimitBounds := SubsetBounds(cbArray.TotalLength, ClipboardMenuItems, cbArray.selectedIdx)
 	
@@ -179,14 +188,6 @@ ReloadCustomClipboardMenu()
 	}
 	if (cbArray.TotalLength > ClipboardMenuItems)
 		CustomClipboardMenu.Add("&All (" . cbArray.TotalLength . ")", CustomClipboardContentMenu)
-	
-	CustomClipboardMenu.Add()
-	CustomClipboardMenu.Add("&Paste List", pasteList2Cb)
-	CustomClipboardMenu.Add("Paste CSV", pasteCSV2Cb)
-	if (cbArray.Length = 0) {
-		CustomClipboardMenu.Disable("&Paste List")
-		CustomClipboardMenu.Disable("Paste CSV")
-	}
 
 	cbArrayReload := false
 }
@@ -230,7 +231,7 @@ ClearCbArray(vars*) {
 {
 	DisableCbChangeManager()
 	InitClipboard()
-	CopyToCbManager("List")
+	CopyToCbManager("dsv")
 	EnableCbChangeManager()
 }
 

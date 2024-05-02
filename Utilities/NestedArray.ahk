@@ -13,9 +13,9 @@ class NestedArray extends Array {
 	/**
 	 * Returns the value at a given flattened array index, or a default value.
 	 */
-	Get(Index, Default?) {
+	Get(Index, Default?, &itemArray?) {
 		i := 0
-		if (ParseNestedArray(this, Index, &i, &foundItem))
+		if (ParseNestedArray(this, Index, &i, &foundItem, &itemArray))
 			return foundItem
 		
 		defaultValue := ""
@@ -25,17 +25,19 @@ class NestedArray extends Array {
 			defaultValue := this.Default
 		return defaultValue
 
-		ParseNestedArray(arr, outerIndex, &outerOffset, &foundItem) {
+		ParseNestedArray(arr, outerIndex, &outerOffset, &foundItem, &itemArray?) {
 			Loop arr.Length {
 				item := arr[A_Index]
 				if (item is Array) {
-					if (ParseNestedArray(item, outerIndex, &outerOffset, &foundItem))
+					if (ParseNestedArray(item, outerIndex, &outerOffset, &foundItem, &itemArray))
 						return true
 				}
 				else {
 					outerOffset++
 					if (outerIndex = outerOffset) {
 						foundItem := item
+						if (IsSetRef(&itemArray))
+							itemArray := arr
 						return true
 					}
 				}
@@ -168,14 +170,21 @@ class NestedArray extends Array {
 	__Enum(NumberOfVars) {
 		i := 1
 		EnumItems(&item) {
-			if (i > this.TotalLength)
+			if (i > this.Length)
 				return false
-			item := this.Get(i++)
+			item := this[i++]
 			return true
 		}
 		EnumIndexAndItems(&index, &item) {
 			index := i
 			return EnumItems(&item)
+		}
+		EnumItemsFlattened(&index, &item, &array) {
+			index := i
+			if (i > this.TotalLength)
+				return false
+			item := this.Get(i++, , &array)
+			return true
 		}
 		return (NumberOfVars = 1) ? EnumItems : EnumIndexAndItems
 	}

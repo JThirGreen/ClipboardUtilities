@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#Include ..\Utilities\Text.ahk
 #Include ..\Utilities\Clipboard.ahk
 #Include ..\ContextMenu.ahk
 
@@ -43,7 +44,7 @@ class CustomClip {
 		this.value := content
 		this.clip := clip
 		/** @type {MenuText} */
-		clipMenuText := MenuText((datatype = "text") ? (content) : (datatype . " data"))
+		clipMenuText := MenuText((datatype = "text") ? CleanNewLines(content) : (datatype . " data"))
 		this.name := clipMenuText.Value
 		this.title := clipMenuText.Text
 	}
@@ -57,7 +58,7 @@ class CustomClip {
 				return this.value
 			}
 			else {
-				return this.ToString()
+				return CleanNewLines(this.ToString())
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include General.ahk
+#Include ..\Utilities\Text.ahk
 
 class SubsetBounds {
 	
@@ -59,12 +60,12 @@ class SubsetBounds {
 }
 
 /**
- * Takes comma-separated string {csvStr} and returns it as an array
- * @param {String} csvStr comma-separated string
+ * Takes comma-separated string {commaStr} and returns it as an array
+ * @param {String} commaStr comma-separated string
  * @returns {Array}
  */
-SimpleCSV2Array(csvStr) {
-	return [StrSplit(csvStr, ",")]
+CommaList2Array(commaStr) {
+	return StrSplit(commaStr, ",")
 }
 
 /**
@@ -81,7 +82,7 @@ String2Array(str, delimiter := GetDelimiterFromString(str)) {
 	else if (delimiter = "")
 		return [str]
 	else if (delimiter = "`n" || (!InStr(str, "`"") && !InStr(str, "`n"))) {
-		return StrSplit(str, delimiter)
+		return StrSplit(CleanNewLines(str), delimiter)
 	}
 	else {
 		strArray := [], lineArray := []

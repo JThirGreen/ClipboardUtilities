@@ -273,9 +273,15 @@ class ClipArray {
 	LoadString(str, mode) {
 		switch StrLower(mode) {
 			case "list":
-				this.LoadArray(String2Array(str))
+				this.LoadArray(String2Array(str, "`n"))
+			case "commalist":
+				this.LoadArray(CommaList2Array(str))
 			case "csv":
-				this.LoadArray(SimpleCSV2Array(str)[1])
+				this.LoadArray(String2Array(str, ","))
+			case "tsv":
+				this.LoadArray(String2Array(str, "`t"))
+			case "dsv":
+				this.LoadArray(String2Array(str))
 			default:
 				this.Add(CustomClip(str))
 		}
@@ -293,22 +299,39 @@ class ClipArray {
 	 * @returns {String} 
 	 */
 	ToString(mode) {
+		separator := ""
+		stitchMode := ""
 		switch StrLower(mode) {
 			case "list":
 				separator := "`r`n"
+				stitchMode := "simple"
+			case "commalist":
+				separator := ","
+				stitchMode := "simple"
 			case "csv":
 				separator := ","
+				stitchMode := "full"
+			case "tsv":
+				separator := "`t"
+				stitchMode := "full"
 			default:
 				return this.selected.ToString()
 		}
 		
-		cbArrayStr := ""
-		Loop this.TotalLength {
-			if (A_Index > 1)
-				cbArrayStr .= separator
-		cbArrayStr .= this[A_Index].ToString()
+		if (stitchMode = "simple") {
+			cbArrayStr := ""
+			Loop this.TotalLength {
+				clipStr := this[A_Index].ToString()
+				if (StrLen(clipStr)) {
+					if (StrLen(cbArrayStr) > 1)
+						cbArrayStr .= separator
+					cbArrayStr .= clipStr
+				}
+			}
+			return cbArrayStr
 		}
-		return cbArrayStr
+		else
+			return Array2String(this.__clips, separator)
 	}
 
 	/**
