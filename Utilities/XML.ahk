@@ -62,7 +62,7 @@ XMLTransform_cb(tfType, wrapType:="") {
 			forceSelectMode := true
 	}
 	txt := GetClipboardValue(forceSelectMode ? "select" : "")
-	if (txt != "" or (tfType = "empty" and wrapType != "")) {
+	if (txt != "" || (tfType = "empty" && wrapType != "")) {
 		PasteValue(XMLWrap(txt, tfType, wrapType))
 	}
 	return
@@ -102,7 +102,7 @@ XMLWrap(startText, tfType, wrapType) {
 		}
 	}
 	
-	if (wrapType = "selfTag" and startText != "") {
+	if (wrapType = "selfTag" && startText != "") {
 		if (InStr(newText, "`r`n")) {
 			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
 		}
@@ -182,7 +182,7 @@ XMLTransform(startText, tfType) {
 	else if (tfType = "uncomment") {
 		text := RegExReplace(text, "(<!--[^\S\r\n])", "", &OpenFound, 1)
 		text := RegExReplace(text, "([^\S\r\n]*-->)", "", &CloseFound, 1)
-		if (OpenFound = 0 or CloseFound = 0) {
+		if (OpenFound = 0 || CloseFound = 0) {
 			text := startText
 		}
 	}

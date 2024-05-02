@@ -70,7 +70,7 @@ CommaList2Array(commaStr) {
 
 /**
  * Converts delimiter-formatted string to 2D array
- * @param str Delimited string to parse
+ * @param {String} str Delimited string to parse
  * @param {String} delimiter Delimiter to use by parsing
  * 
  * If delimiter is not provided, then determine delimiter via {@link GetDelimiterFromString()}
@@ -132,8 +132,20 @@ String2Array(str, delimiter := GetDelimiterFromString(str)) {
 }
 
 /**
+ * Takes string element to be added to delimited string and, if needed, applies quotation and escapes its quotes
+ * @param {String} str String element
+ * @param {String} delimiter Delimiter to be used to determine if quotation is needed
+ * @returns {String} 
+ */
+QuoteDelimited(str, delimiter) {
+	if (InStr(str, delimiter) || InStr(str, "`""))
+		return "`"" . StrReplace(str, "`"", "`"`"") . "`""
+	else
+		return str
+}
+/**
  * Takes string element parsed from delimited string and unescapes its quotes
- * @param str String of delimited element
+ * @param {String} str String of delimited element
  * @returns {String} 
  */
 DequoteDelimited(str) {
@@ -251,9 +263,7 @@ Array2String(strArray, delimiter := ",") {
 	for elem in strArray {
 		prefix := (idx++ > 0) ? delimiter : ""
 		if (Type(elem) = "String") {
-			if (InStr(elem, delimiter) || InStr(elem, "`"")) {
-				elem := "`"" . StrReplace(elem, "`"", "`"`"") . "`""
-			}
+			elem := QuoteDelimited(elem, delimiter)
 			str .= prefix . elem
 		}
 		else if (IsNumber(elem)) {
@@ -264,7 +274,7 @@ Array2String(strArray, delimiter := ",") {
 			str .= Array2String(elem, delimiter)
 		}
 		else if (IsObject(elem)) {
-			str .= prefix . (IsObject(elem.ToString) ? elem.ToString() : "{Object}")
+			str .= prefix . (IsObject(elem.ToString) ? QuoteDelimited(elem.ToString(), delimiter) : "{Object}")
 		}
 		else {
 			str .= prefix . "undefined"

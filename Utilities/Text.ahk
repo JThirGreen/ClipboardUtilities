@@ -136,7 +136,7 @@ CaseScroll(increment) {
 	prevState := cbCaseState
 	/** @type {true|false} */
 	showToolTip := false
-	if (IsNumber(cbCaseState) and cbCaseState < 0) {
+	if (IsNumber(cbCaseState) && cbCaseState < 0) {
 		cbCaseTextOld := GetClipboardValue()
 		cbCaseState := GetTextCase(cbCaseTextOld)
 	}
@@ -255,13 +255,13 @@ GetTextCase(txt) {
 			CaseState := 1
 		}
 	}
-	else if (UpperFound = 1 and LowerFound > 0) {
+	else if (UpperFound = 1 && LowerFound > 0) {
 		CaseState := 2
 	}
-	else if (UpperFound > 0 and LowerFound > 0) {
+	else if (UpperFound > 0 && LowerFound > 0) {
 		CaseState := 3
 	}
-	else if (UpperFound > 0 and !LowerFound) {
+	else if (UpperFound > 0 && !LowerFound) {
 		CaseState := 4
 	}
 	else {
@@ -296,12 +296,12 @@ CaseTransform(txt, CaseState := 0, ForceState := true) {
 			FirstChar := SubStr(txt, 1, RegExMatch(txt, "[a-z]"))
 			FirstChar := StrUpper(FirstChar)
 			txt := FirstChar . SubStr(txt, (1+StrLen(FirstChar))<1 ? (1+StrLen(FirstChar))-1 : (1+StrLen(FirstChar)))
-			if (!ForceState and txt == initText) ; If no change, then assuming 3->2 where 3=2. Skip to 1
+			if (!ForceState && txt == initText) ; If no change, then assuming 3->2 where 3=2. Skip to 1
 				txt := StrLower(txt)
 
 		case 3: ; Capitilize Every Word
 			txt := StrTitle(txt)
-			if (!ForceState and txt == initText) ; If no change, then assuming 2->3 where 2=3. Skip to 4
+			if (!ForceState && txt == initText) ; If no change, then assuming 2->3 where 2=3. Skip to 4
 				txt := StrUpper(txt)
 
 		case 4: ; ALL UPPERCASE
