@@ -274,7 +274,27 @@ ClearCbArray(vars*) {
 	CbManagerAction()
 }
 
-#HotIf GetKeyState("Ctrl", "P") && GetKeyState("Shift", "P")
+; Disable possible native hotkeys that may cause conflicts
+#HotIf GetKeyState("v", "P")
+^+LButton::
+^+Enter::
+^+BS::
+^+Del::
+^+Up::
+^+Down::
+^+Left::
+^+Right::
+^+WheelUp::
+^+WheelDown::
+^+XButton1::
+^+Browser_Back::
+^+XButton2::
+^+Browser_Forward::
+{
+
+}
+
+#HotIf GetKeyState("Ctrl", "P") && GetKeyState("Shift", "P") && GetKeyState("v", "P")
 	; Ctrl + Shift + V + left click
 	; Ctrl + Shift + V + Enter
 	v & LButton::

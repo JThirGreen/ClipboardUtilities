@@ -469,6 +469,11 @@ WrapTextMultiline(txt, opener, closer) {
 	return preText . opener . newTxt . minLineSpace . closer
 }
 
+/**
+ * Removes carriage returns (`r) and replaces them with new lines (`n)
+ * @param str String to clean
+ * @returns {String} 
+ */
 CleanNewLines(str) {
-	return StrReplace(StrReplace(str,'`r`n','`n'),'`r','')
+	return StrReplace(StrReplace(str,'`r`n','`n'),'`r','`n')
 }
