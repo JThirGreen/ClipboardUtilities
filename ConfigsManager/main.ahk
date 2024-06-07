@@ -7,10 +7,3 @@ global configsManager := ConfigurationManager()
 ^!+g:: {
 	configsManager.ShowGui()
 }
-
-A_TrayMenu.Insert("1&", "Configure", configureFromMenu)
-A_TrayMenu.Default := "Configure"
-
-configureFromMenu(vars*) {
-	configsManager.ShowGui()
-}

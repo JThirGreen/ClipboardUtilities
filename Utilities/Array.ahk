@@ -63,7 +63,7 @@ class SubsetBounds {
  * Search array for a specified value
  * @param {Array} haystack array to search
  * @param {Any} needle value to search for in array
- * @return {true|false}
+ * @returns {true|false}
  */
 InArray(haystack, needle, &foundIndex?) {
 	for index, item in haystack {

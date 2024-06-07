@@ -92,9 +92,8 @@ MenuItemTextTrim(val) {
  * Wrapper function for calling {@link CaseTransform_cb()} from menu option
  * @param {String} tfType Type of transformation to perform
  * @param {Integer} toCaseState Case state to transform selected text to
- * @param vars Additional parameters auto-added by menu option
  */
-CastTransformAction(tfType, toCaseState, vars*) {
+CastTransformAction(tfType, toCaseState, *) {
 	Sleep(10) ; Occasionally pasting from menu option would not work without a small delay
 	CaseTransform_cb(tfType, toCaseState)
 }
@@ -103,18 +102,16 @@ CastTransformAction(tfType, toCaseState, vars*) {
  * Wrapper function for calling {@link XMLTransform_cb()} from menu option
  * @param {String} tfType Type of transformation to perform
  * @param {String} wrapType Type of wrapping to apply
- * @param vars Additional parameters auto-added by menu option
  */
-XMLTransformAction(tfType, wrapType, vars*) {
+XMLTransformAction(tfType, wrapType, *) {
 	Sleep(10) ; Occasionally pasting from menu option would not work without a small delay
 	XMLTransform_cb(tfType, wrapType)
 }
 
 /**
  * Wrapper function for calling parameter-less functions from menu option
- * @param vars Additional parameters auto-added by menu option
  */
-MenuActionNoParams(function, vars*) {
+MenuActionNoParams(function, *) {
 	%function%()
 }
 
@@ -317,9 +314,8 @@ MarkPasteMode() {
 
 /**
  * Menu option for switching to paste mode and refreshing menu
- * @param vars Additional parameters auto-added by menu option
  */
-PasteMode(vars*) {
+PasteMode(*) {
 	global mPosX, mPosY
 	MarkPasteMode()
 	CustomContextMenu.Show(mPosX, mPosY)
@@ -339,9 +335,8 @@ MarkSelectMode() {
 
 /**
  * Menu option for switching to select mode and refreshing menu
- * @param vars Additional parameters auto-added by menu option
  */
-SelectMode(vars*) {
+SelectMode(*) {
 	global mPosX, mPosY
 	MarkSelectMode()
 	CustomContextMenu.Show(mPosX, mPosY)

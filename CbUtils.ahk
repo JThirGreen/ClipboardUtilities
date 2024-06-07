@@ -20,10 +20,29 @@ global tempGlobal := ""
 #Include ConfigsManager\main.ahk
 #Include ClipboardManager\main.ahk
 
-MainInit() {
-	InitCbManager()
-}
 
 MainInit()
 
 ListLines(false)
+
+return
+
+;-----------------------------+
+;    function definitions     |
+;-----------------------------+
+MainInit() {
+	InitCbManager()
+	TrayMenuInit()
+}
+
+TrayMenuInit() {
+	A_TrayMenu.Insert("1&", "Configure", configureFromMenu)
+	A_TrayMenu.Default := "Configure"
+
+	configureFromMenu(*) {
+		configsManager.ShowGui()
+	}
+
+	A_TrayMenu.Insert("2&", "Select Clip List", BuildClipChangerMenu())
+	A_TrayMenu.Default := "Configure"	
+}

@@ -486,7 +486,7 @@ class ClipArray {
 	 * Load clips from files inside assigned folder
 	 * @param {String} FolderPath Folder path override parameter
 	 * @param {String} FilePrefix File prefix override parameter
-	 * @return {true|false} Returns "true" if file found, otherwise "false"
+	 * @returns {true|false} Returns "true" if file found, otherwise "false"
 	 */
 	LoadFromFolder(FolderPath := "", FilePrefix?) {
 		this.SetFileParameters(FolderPath, (FilePrefix ?? unset))
@@ -575,7 +575,7 @@ class ClipArray {
 	 * 'csv': Parse string as simple single CSV row
 	 * 
 	 * default: Add string to clip array
-	 * @return {true|false} Returns "true" if mode is supported, otherwise "false"
+	 * @returns {true|false} Returns "true" if mode is supported, otherwise "false"
 	 */
 	LoadString(str, mode) {
 		switch StrLower(mode) {

@@ -157,7 +157,7 @@ Class ClipboardManager {
 	}
 
 	/**
-	 * Remove all stored {@link CustomClip} clips and reset selected index
+	 * Remove all stored {@link CustomClip} clips of selected {@link ClipArray} and reset selected index
 	 */
 	Clear(name?) {
 		if (IsSet(name) && name != this.CbArray.Name && this.CbArrayMap.Has(name)) {
@@ -169,6 +169,30 @@ Class ClipboardManager {
 			SetClipboardValue("")
 			this.GetCbArray(name).Clear(true)
 		}
+		this.MarkChanged()
+	}
+
+	/**
+	 * Remove all stored {@link CustomClip} clips
+	 * @param {true|false} keepDefault Set to 'true' to not clear the default clip list
+	 */
+	ClearAll(keepDefault := false) {
+		defaultName := 0
+		toDelete := []
+		for name, cbArray in this.CbArrayMap {
+			if (cbArray.Category = "Default") {
+				defaultName := name
+				if (keepDefault)
+					continue
+			}
+			cbArray.DeleteFromFolder()
+			toDelete.Push(name)
+		}
+		for name in toDelete {
+			this.CbArrayMap.Delete(name)
+		}
+		this.SelectCbArray(defaultName, false)
+		AddToolTip("Clip lists have been cleared", 5000)
 		this.MarkChanged()
 	}
 

@@ -167,7 +167,7 @@ AddToolTip(txt, delay := 2000, arrayMode := "down") {
 	 * @param {ToolTipInfo} ttInfo
 	 * @param {Integer} x
 	 * @param {Integer} y
-	 * @return {Integer}
+	 * @returns {Integer}
 	 */
 	addTT(ttInfo, x, y) {
 		addedToolTips.Set(ttInfo.id, ttInfo)
