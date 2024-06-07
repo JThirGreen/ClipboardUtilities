@@ -1,4 +1,8 @@
 #Requires AutoHotkey v2.0
+
+/**
+ * Extends upon {@link Array} with support for parsing multi-dimensional content as a flattened 1-dimensional array
+ */
 class NestedArray extends Array {
 
 	/**
@@ -17,7 +21,7 @@ class NestedArray extends Array {
 		i := 0
 		if (ParseNestedArray(this, Index, &i, &foundItem, &itemArray))
 			return foundItem
-		
+
 		defaultValue := ""
 		if (IsSet(Default))
 			defaultValue := Default
@@ -88,22 +92,61 @@ class NestedArray extends Array {
 			return this.Pop()
 	}
 
-	RemoveAt(Index, Length) {
-		toRemove := Length
-		removed := 0
-		while (toRemove > 0) {
-			relativeDetails := this.GetRelativeArrayAndIndex((Index - 1) + toRemove)
-			startIndex := 1 + relativeDetails.Index - toRemove
-			if (startIndex < 1) {
-				removed := relativeDetails.Index
-				relativeDetails.Array.RemoveAt(1, removed)
+	RemoveAt(Index, Length?) {
+		if (IsSet(Length)) {
+			toRemove := Length
+			removed := 0
+			needCleaning := false
+			while (toRemove > 0) {
+				relativeDetails := this.GetRelativeArrayAndIndex((Index - 1) + toRemove)
+				startIndex := 1 + relativeDetails.Index - toRemove
+				if (startIndex < 1) {
+					removed := relativeDetails.Index
+					relativeDetails.Array.RemoveAt(1, removed)
+				}
+				else {
+					removed := toRemove
+					relativeDetails.Array.RemoveAt(startIndex, toRemove)
+				}
+				needCleaning := (needCleaning || !relativeDetails.Array.Length)
+				toRemove -= removed
 			}
-			else {
-				removed := toRemove
-				relativeDetails.Array.RemoveAt(startIndex, toRemove)
-			}
+			if (needCleaning)
+				this.Clean()
+		}
+		else {
+			super.RemoveAt(Index)
+		}
+	}
 
-			toRemove -= removed
+	/**
+	 * Parse content and delete any empty arrays
+	 */
+	Clean() {
+		CleanNestedArray(this)
+
+		/**
+		 * @param {Array} arr
+		 */
+		CleanNestedArray(arr) {
+			Loop arr.Length {
+				if (arr.Length < A_Index)
+					return
+			
+				item := arr[A_Index]
+				if (item is Array) {
+					if (item.Length > 0){
+						CleanNestedArray(item)
+					}
+
+					if (item.Length = 0) {
+						arr.RemoveAt(A_Index)
+						if (arr.Length < A_Index)
+							return
+						A_Index--
+					}
+				}
+			}
 		}
 	}
 

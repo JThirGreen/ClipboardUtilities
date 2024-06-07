@@ -1,0 +1,20 @@
+<Configs>
+	<Config Name="ClipboardManager">
+		<Property Name="useClipFiles" Type="Checkbox" Description="Persist clips by saving them to disk"></Property>
+		<Property Name="nativeHotKeyTimeout" Type="Dropdown" Description="Hold delay for certain hotkeys before disabling native behavior on release (in ms)">
+			<Options Type="Default">
+				<Option Value="0" Text="Disable"></Option>
+			</Options>
+			<Options Type="Number" Start="0" End="10000" Step="50" Skip="0"></Options>
+		</Property>
+		<Property Name="menuItemsCount" Type="Number" Description="# of clips shown at a time in menu selector"></Property>
+	</Config>
+	<Config Name="ClipArray">
+		<Property Name="maxClips" Type="Number" Description="Maximum # of clips in clip history" Note="Ignored when bulk copying"></Property>
+		<Property Name="maxTooltipItems" Type="Number" Description="# of clips shown at a time in tooltip selector"></Property>
+		<Property Name="trimBulkCopy" Type="Checkbox" Description="Trim whitespaces when bulk copying"></Property>
+	</Config>
+	<Config Name="">
+		<Property Name="onStartUp" Type="StartUp" Description="Run on start up"></Property>
+	</Config>
+</Configs>

@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0
 
-CoordMode "ToolTip"
+CoordMode("Mouse")
+CoordMode("ToolTip")
 
 class StringType {
 	/**
@@ -102,23 +103,104 @@ SubstringLeading(txt, charArray) {
 	return leadingChars
 }
 
+class ToolTipInfo {
+	id := 0
+	text := ""
+	delayOnly := false
+
+	/**
+	 * @param {String} text Text displayed in tooltip
+	 * @param {Integer} id Tooltip ID to use when displaying
+	 * @param {true|false} delayOnly Flag to disable use of {@link RemoveToolTip()} for this tooltip
+	 */
+	__New(text, id := 1, delayOnly := false) {
+		this.text := text
+		this.id := id
+		this.delayOnly := delayOnly
+	}
+}
+/** @type {Map<Integer,ToolTipInfo>} */
+global addedToolTips := Map()
 /**
  * Displays string {txt} as tooltip for {delay} period of time in milliseconds
- * @param {String} txt String to display as tooltip
+ * @param {String|ToolTipInfo|Array<String>|Array<ToolTipInfo>} txt String (or array of strings) to display as tooltip
  * @param {Integer} delay Number of milliseconds to display tooltip for
  */
-AddToolTip(txt, delay := 2000) {
-	ToolTip(txt)
+AddToolTip(txt, delay := 2000, arrayMode := "down") {
+	MouseGetPos(&mouseX, &mouseY)
+	x := mouseX + 20
+	y := mouseY - 10
 	delay := 0 - Abs(delay) ; Force negative to only run timer once
+	
+	if (txt is Array) {
+		index := 0
+		Loop txt.Length {
+			index++
+			item := txt[index]
+			if (item is ToolTipInfo) {
+				ttID := addTT(item, x, y)
+			}
+			else {
+				ttID := addTT(ToolTipInfo(item, index), x, y)
+			}
+			try {
+				WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " . ttID)
+				if (arrayMode = "down")
+					y += winH
+				else if (arrayMode = "right")
+					x += winW
+			}
+		}
+	}
+	else if (txt is ToolTipInfo) {
+		txt := addTT(txt, x, y)
+	}
+	else {
+		addTT(ToolTipInfo(txt), x, y)
+	}
 	if (delay)
 		SetTimer(RemoveToolTip, delay)
+
+	return
+
+	/**
+	 * @param {ToolTipInfo} ttInfo
+	 * @param {Integer} x
+	 * @param {Integer} y
+	 * @return {Integer}
+	 */
+	addTT(ttInfo, x, y) {
+		addedToolTips.Set(ttInfo.id, ttInfo)
+		if (ttInfo.delayOnly && delay)
+			SetTimer(RemoveToolTip.Bind(ttInfo.id), delay)
+		return ToolTip(ttInfo.text, x, y, ttInfo.id)
+	}
 }
 
 /**
  * Remove tooltip if currently displayed
+ * @param {Integer} id Optional tooltip ID to remove only a specific one
  */
-RemoveToolTip() {
-	ToolTip()
+RemoveToolTip(id?) {
+	if (IsSet(id)) {
+		if (id = -1) {
+			Loop 20 {
+				if (addedToolTips[A_Index].delayOnly)
+					continue
+				else
+					RemoveToolTip(A_Index)
+			}
+		}
+		else {
+			ToolTip(, , , id)
+		}
+	}
+	else {
+		for ttid, tt in addedToolTips {
+			if (!tt.delayOnly)
+				RemoveToolTip(tt.id)
+		}
+	}
 }
 
 /**
@@ -135,66 +217,4 @@ IsOdd(num) {
  */
 IsEven(num) {
 	return !IsOdd(num)
-}
-
-/**
- * Stringify object to JSON formatted string
- * @param {Object} obj Object to stringify
- * @returns {String} 
- */
-StringifyObject(obj) {
-	objStr := ""
-	
-	delimit := false
-	if (obj is Array){
-		objStr := "["
-		for value in obj {
-			if (delimit)
-				objStr .= ","
-			else
-				delimit := true
-			objStr .= StringifyObject(value)
-		}
-		objStr .= "]"
-
-		if (Type(obj) != "Array")
-			objStr := "{`"type`":`"" . Type(obj) . "`",`"items`":" . objStr . "}"
-	}
-	else if (IsObject(obj)){
-		objStr := "{"
-		objStr .= "`"type`":`"" . Type(obj) . "`""
-		objStr .= ",`"properties`":{"
-		for name, value in obj.OwnProps() {
-			if (delimit)
-				objStr .= ","
-			else
-				delimit := true
-			objStr .= "`"" . name . "`":" . StringifyObject(value)
-		}
-		objStr .= "}"
-		objStr .= "}"
-	}
-	else if (Type(obj) = "String") {
-		objStr := "`""
-		Loop Parse, obj {
-			switch A_LoopField {
-				case "`"":
-					objStr .= "\`""
-				case "`t":
-					objStr .= "\t"
-				case "`n":
-					objStr .= "\n"
-				case "`r":
-					objStr .= "\r"
-				default:
-					objStr .= A_LoopField
-			}
-		}
-		objStr .= "`""
-	}
-	else if (GetDataType(obj).type = "number")
-		objStr := String(obj)
-	else
-		objStr := "`"" . String(obj) . "`""
-	return objStr
 }

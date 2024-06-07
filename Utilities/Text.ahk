@@ -45,28 +45,34 @@ global cbCaseIsScrolling := false
 ;     hotkey definitions      |
 ;-----------------------------+
 ; Ctrl + Shift + mouse scroll wheel up
+; Alt + Shift + '='/'+'
 ; Uppercase transformation
 ^+WheelUp::
+^+NumpadAdd::
+^+=::
 {
 	CaseScroll(1)
 }
 
 ; Ctrl + Shift + mouse scroll wheel down
+; Ctrl + Shift + '-'
 ; Lowercase transformation
 ^+WheelDown::
+^+NumpadSub::
+^+-::
 {
 	CaseScroll(-1)
 }
 
 #HotIf cbCaseIsScrolling = true
-*LButton::
-{
-	CaseScrollEnd()
-}
-*Esc::
-{
-	CaseScrollEnd(true)
-}
+	*LButton::
+	{
+		CaseScrollEnd()
+	}
+	*Esc::
+	{
+		CaseScrollEnd(true)
+	}
 #HotIf
 
 ; Ctrl + Shift + mouse scroll wheel click right
@@ -89,6 +95,29 @@ global cbCaseIsScrolling := false
 	CaseTransform_cb("ToCamel", toCaseState)
 }
 
+#HotIf cbCaseState != -1
+	; Ctrl + Shift + Right arrow
+	; From camel case transformation
+	^+Right::
+	{
+		global cbCaseState
+		toCaseState := cbCaseState
+		CaseScrollEnd(true)
+		CaseTransform_cb("FromCamel", toCaseState)
+	}
+
+	; Ctrl + Shift + Left arrow
+	; To camel case transformation
+	^+Left::
+	{
+		global cbCaseState
+		toCaseState := cbCaseState
+		CaseScrollEnd(true)
+		CaseTransform_cb("ToCamel", toCaseState)
+	}
+#HotIf
+
+; Alt + {Wrapper Character}
 !"::
 {
 	PasteValue(WrapText(GetClipboardValue("select"),Chr(34)))
@@ -112,6 +141,10 @@ global cbCaseIsScrolling := false
 {
 	PasteValue(WrapText(GetClipboardValue("select"),"{"))
 }
+
+;-----------------------------+
+;    function definitions     |
+;-----------------------------+
 
 /**
  * Encode string for literal use in Format()
@@ -178,7 +211,11 @@ CaseScroll(increment) {
 	}
 
 	if (showToolTip) {
-		AddToolTip(cbCaseTextNew, -1000)
+		caseMode := ((cbCaseState = 4) ? "  >>" : ">>  ") . "UPPERCASE`r`n"
+		caseMode .= ((cbCaseState = 3) ? "  >>" : ">>  ") . "Title Case`r`n"
+		caseMode .= ((cbCaseState = 2) ? "  >>" : ">>  ") . "Capital case`r`n"
+		caseMode .= ((cbCaseState = 1) ? "  >>" : ">>  ") . "lowercase`r`n"
+		AddToolTip([caseMode, cbCaseTextNew], -1000, "right")
 		SetTimer(CaseScrollEnd,-1000)
 		cbCaseIsScrolling := true
 	}
@@ -221,6 +258,8 @@ CaseTransform_cb(tfType, toCaseState := 0) {
 			Case "ToCamel":
 				inText := ToCamelCase(inText)
 			Case "FromCamel":
+				if (!(toCaseState > 0))
+					toCaseState := 3 ; Default to "Title Case" if no valid case state is selected
 				inText := FromCamelCase(inText, toCaseState)
 			default:
 				inText := CaseTransform(inText, toCaseState)
@@ -317,9 +356,8 @@ CaseTransform(txt, CaseState := 0, ForceState := true) {
  */
 ToCamelCase(txt) {
 	initText := txt
-	txt := StrTitle(txt)
-	if (RegExMatch(Trim(txt), "[\sa-zA-Z]*")) {
-		txt := RegExReplace(txt, "([a-zA-Z])\s*([A-Z])", "$1$2")
+	if (InStr(txt,' ') && RegExMatch(Trim(txt), "[\sa-zA-Z]*")) {
+		txt := RegExReplace(StrTitle(txt), "([a-zA-Z])\s*([A-Z])", "$1$2")
 	}
 	return txt
 }
@@ -467,6 +505,26 @@ WrapTextMultiline(txt, opener, closer) {
 	}
 	newTxt := "`r`n" . minLineSpace . newTxt . "`r`n"
 	return preText . opener . newTxt . minLineSpace . closer
+}
+
+/**
+ * Return true if {haystack} starts with {needle}, otherwise return false. Comparison is case sensitive by default.
+ * @param {String} haystack
+ * @param {String} needle
+ * @param {Integer} caseSense If set to false, then the comparison becomes case insensitive
+ */
+StartsWith(haystack, needle, caseSense := true) {
+	return (InStr(haystack, needle, caseSense) = 1) ? true : false
+}
+
+/**
+ * Return true if {haystack} ends with {needle}, otherwise return false. Comparison is case sensitive by default.
+ * @param {String} haystack
+ * @param {String} needle
+ * @param {Integer} caseSense If set to false, then the comparison becomes case insensitive
+ */
+EndsWith(haystack, needle, caseSense := true) {
+	return ((InStr(haystack, needle, caseSense) - 1) = (StrLen(haystack) - StrLen(needle))) ? true : false
 }
 
 /**

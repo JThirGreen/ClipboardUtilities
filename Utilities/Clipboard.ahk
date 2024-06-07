@@ -198,7 +198,7 @@ GetClipboardValue(forceMode := "") {
 SetClipboardValue(val, type := "text") {
 	cbLockKey := SetClipboardInitializing()
 
-	A_Clipboard := (type = "binary") ? ClipboardAll(val) : val
+	A_Clipboard := (type = "binary" && IsObject(val)) ? ClipboardAll(val) : val
 	
 	ClearClipboardInitializing(cbLockKey)
 	return

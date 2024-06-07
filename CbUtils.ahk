@@ -1,5 +1,4 @@
 ﻿#Requires AutoHotkey v2.0
-#Include ClipboardManager\CbManager.ahk
 
 A_HotkeyInterval := 1000 ; Milliseconds
 A_MaxHotkeysPerInterval := 200
@@ -10,17 +9,21 @@ FileInstall("Images\tray.png", "Images\tray.png", 1)
 FileInstall("Images\XML.png", "Images\XML.png", 1)
 
 TraySetIcon("Images\tray.png")
+A_IconTip := "Clipboard Utilities"
 
 /**
  * Global variable used exclusively for debugging
  * @type {Any}
- */
+*/
 global tempGlobal := ""
 
-ListLines(false)
-
-MainInit()
+#Include ConfigsManager\main.ahk
+#Include ClipboardManager\main.ahk
 
 MainInit() {
 	InitCbManager()
 }
+
+MainInit()
+
+ListLines(false)

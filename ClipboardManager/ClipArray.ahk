@@ -1,10 +1,32 @@
 #Requires AutoHotkey v2.0
-#Include ../Utilities/General.ahk
-#Include ../Utilities/Array.ahk
-#Include ../Utilities/NestedArray.ahk
+#Include ..\Utilities\General.ahk
+#Include ..\Utilities\Array.ahk
+#Include ..\Utilities\NestedArray.ahk
+#Include ..\Utilities\JSON.ahk
+#Include ..\Utilities\Configs.ahk
 #Include CustomClip.ahk
 
 class ClipArray {
+	/**
+	 * @type {Configurations}
+	 */
+	configs := Configurations("ClipArray")
+	/**
+	 * Maximum number of clips in clip history
+	 * @type {Integer}
+	 */
+	maxClips => this.configs.Get("maxClips", 20, true)
+	/**
+	 * Maximum number of clips shown at a time in tooltip selector
+	 * @type {Integer}
+	 */
+	maxToolTipItems => this.configs.Get("maxTooltipItems", 20, true)
+	/**
+	 * Trim whitespaces when bulk copying
+	 * @type {true|false}
+	 */
+	trimBulkCopy => this.configs.Get("trimBulkCopy", false, true)
+
 	/**
 	 * Index of currently selected clip
 	 * @type {Integer}
@@ -12,32 +34,101 @@ class ClipArray {
 	selectedIdx := -1
 
 	/**
-	 * Maximum number of clips
-	 * @type {Integer}
+	 * For assignment of optional name 
+	 * @type {String}
 	 */
-	maxSize := 20
+	Name := ""
+
 	
+	/** @type {NestedArray<CustomClip>} */
+	_clips := NestedArray()
 	/**
-	 * Instance array variable for storing array of {@link CustomClip} clips
-	 * @type {NestedArray}
+	 * Array of stored {@link CustomClip} clips
+	 * @type {NestedArray<CustomClip>}
 	 */
-	__clips := NestedArray()
 	clips {
 		get {
-			if (!this.__clips.Length)
+			if (!this._clips.Length)
 				this.AppendClipboard()
-			return this.__clips
+			return this._clips
 		}
 	}
 
+	_folderPath := ""
+	/**
+	 * Path of folder where clip files are located
+	 * @type {String}
+	 */
+	FolderPath => StrLen(this._folderPath) ? this._folderPath : this.configs.FilePath
+
+	_filePrefix := ""
+	/**
+	 * Text prepended to name to use as file name
+	 * @type {String}
+	 */
+	FilePrefix {
+		get {
+			return (StrLen(this._filePrefix) > 0)
+				? this._filePrefix
+				: (IsNumber(this.Name) ? "Clip" : "")
+		}
+		set {
+			this._filePrefix := Value
+		}
+	}
+
+	/**
+	 * File name to use for clip files
+	 * @type {String}
+	 */
+	FileName => this.FilePrefix . String(this.Name)
+
+	/**
+	 * Full file path to primary clip file
+	 * @type {String}
+	 */
+	RootFile => this.FolderPath . "\" . this.FileName . ".json"
+
+	/**
+	 * Parsed result of contents of primary clip file
+	 * @type {Map|String}
+	 */
+	RootFileContents {
+		get {
+			fileContents := JSON.parse(FileRead(this.RootFile))
+			if (fileContents = "")
+				MsgBox("Failed to parse contens of `"" . this.RootFile . "`"")
+			return fileContents
+		}
+	}
+
+	/**
+	 * Optional category value to be added to certain displayed text as well as used for reference purposes
+	 * @type {String}
+	 */
+	Category := ""
+
+	IsLoaded := false
+
+	__New(saveToFile := false, Name := "Clips") {
+		this.configs.SetConfigFromPath("saveToFile", saveToFile, true)
+		this.Name := Name
+	}
+
 	/** @returns {CustomClip} */
-	__Item[index] => this.__clips.Get(index)
+	__Item[index] => this._clips.Get(index)
 
 	__Enum(NumberOfVars) {
 		i := 1
+		
+		/**
+		 * @param {CustomClip} clip 
+		 * @returns {true|false}
+		 */
 		EnumClips(&clip) {
 			if (i > this.TotalLength)
 				return false
+			/** @type {CustomClip} */
 			clip := this[i++]
 			return true
 		}
@@ -50,26 +141,73 @@ class ClipArray {
 	 */
 	selected {
 		get {
-			return (this.selectedIdx >= 0) ? this[this.selectedIdx] : this[1]
+			return (this.selectedIdx > 0) ? this[Min(this.selectedIdx, this.TotalLength)] : this[1]
 		}
 	}
 
 	/**
 	 * Retrieve the length of the array.
+	 * @type {Integer}
 	 */
-	Length => this.__clips.Length
+	Length => this._clips.Length
 
 	/**
 	 * Retrieve the flattened length of the array.
+	 * @type {Integer}
 	 */
-	TotalLength => this.__clips.TotalLength
+	TotalLength => this._clips.TotalLength
+
+	/**
+	 * Generate and return text used for tooltip
+	 * @type {String}
+	 */
+	TooltipText {
+		get {
+			listBounds := SubsetBounds(this.TotalLength, this.configs.Get("maxTooltipItems", 20, true), this.selectedIdx)
+
+			tipText := "Clipboard (" . listBounds.FullLength . ")"
+			if (StrLen(this.Category) > 0)
+				tipText .= " [" . this.Category . "]"
+			tipText .= ":`r`nClick to select`r`n"
+			if (listBounds.Start > 1)
+				tipText .= "(" . listBounds.Start - 1 . ")`r`n"
+
+			Loop listBounds.Length {
+				clipIdx := A_Index - 1 + listBounds.Start
+				tipText .= (clipIdx = this.selectedIdx) ? "   >>" : ">>   "
+				tipText .= "|"
+				
+				if (Type(this[clipIdx]) = "String")
+					MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
+				tipText .= this[clipIdx].name . "`r`n"
+			}
+
+			if (listBounds.End < listBounds.FullLength)
+				tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
+
+			return tipText
+		}
+	}
+
+	/**
+	 * Generate and return text used for menu option
+	 * @type {String}
+	 */
+	MenuText {
+		get {
+			menuText := this.Name . " (" . this.TotalLength . ") " . this.Category
+			return menuText
+		}
+	}
 
 	/**
 	 * Remove all stored {@link CustomClip} clips and reset selected index
 	 */
-	Clear() {
-		this.__clips := NestedArray()
+	Clear(full := false) {
+		this._clips := NestedArray()
 		this.selectedIdx := -1
+		if (full)
+			this.Category := ""
 	}
 
 	/**
@@ -83,7 +221,7 @@ class ClipArray {
 	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
 	RemoveAt(index, length := 1, soft := false) {
-		this.__clips.RemoveAt(index, length)
+		this._clips.RemoveAt(index, length)
 		if (this.selectedIdx >= index) {
 			newIdx := (this.selectedIdx >= (index + length)) ? (this.selectedIdx - length) : (index)
 			this.Select(Min(newIdx, this.TotalLength), soft)
@@ -97,7 +235,7 @@ class ClipArray {
 	 * @param {CustomClip} clips Clip(s) to add to array
 	 */
 	Push(clips*) {
-		this.__clips.Push(ClipArray.Array2Clips(clips))
+		this._clips.Push(ClipArray.Array2Clips(clips, (this.trimBulkCopy ? "Trim" : "")))
 	}
 
 	/**
@@ -108,12 +246,14 @@ class ClipArray {
 	 * true: Update selected index
 	 * 
 	 * false: Update selected index and apply {@link CustomClip} clip
+	 * @returns {CustomClip}
 	 */
 	Add(clip, soft := false) {
 		this.Push(clip)
-		if (this.TotalLength > this.maxSize)
-			this.RemoveAt(1, this.TotalLength - this.maxSize, soft)
+		if (this.TotalLength > this.maxClips)
+			this.RemoveAt(1, this.TotalLength - this.maxClips, soft)
 		this.Select(this.TotalLength, soft)
+		return clip
 	}
 
 	/**
@@ -215,6 +355,9 @@ class ClipArray {
 	 * false: Paste clip without selecting it
 	 */
 	PasteClip(index := -1, select := false) {
+		if (this.selected = "") {
+			return
+		}
 		if (index < 0)
 			this.selected.Paste()
 		else if (select) {
@@ -239,8 +382,171 @@ class ClipArray {
 	 * Replace clipboard content with content of selected clip
 	 */
 	Apply() {
-		if (this.Length)
+		if (this.TotalLength) {
 			this.selected.Apply()
+		}
+	}
+
+	SetFileParameters(FolderPath := "", FilePrefix?) {
+		if (StrLen(FolderPath)) {
+			this._folderPath := FolderPath
+		}
+		if (IsSet(FilePrefix)) {
+			this._filePrefix := FilePrefix
+		}
+	}
+
+	/**
+	 * Save clips to files inside assigned folder. Files attached to removed clips are also deleted.
+	 * @param {String} FolderPath Folder path override parameter
+	 * @param {String} FilePrefix File prefix override parameter
+	 */
+	SaveToFolder(FolderPath := "", FilePrefix?) {
+		this.SetFileParameters(FolderPath, (FilePrefix ?? unset))
+
+		if (!FileExist(this.FolderPath)) {
+			MsgBox(this.FolderPath . " not found")
+		}
+
+		newFileNameList := []
+		newFileList := toFileListNew(this._clips.Array)
+
+		; If JSON already exists, then delete any *.clip that has been removed from it
+		if (FileExist(this.RootFile)) {
+			clipData := this.RootFileContents
+			if (clipData = "") {
+				return
+			}
+			oldFileList := clipData["files"]
+			if (oldFileList is Array) {
+				cleanFileListOld(oldFileList)
+				FileDelete(this.RootFile)
+			}
+			else {
+				MsgBox("Unable to find `"files`" array in `"" . this.FileName . ".json`"")
+			}
+		}
+		FileAppend(JSON.stringify({category:this.Category, files: newFileList}), this.RootFile)
+
+		toFileListNew(fromArray) {
+			fileList := []
+			for item in fromArray {
+				if (item is Array) {
+					while (item.Length = 1 && item[1] is Array)
+						item := item[1]
+					childArray := toFileListNew(item)
+					if (childArray.Length > 0)
+						fileList.Push(toFileListNew(item))
+				}
+				else if (item is CustomClip) {
+					/** @type {CustomClip} */
+					clip := item
+					fileName := ""
+					if (StrLen(clip.SavedAs) > 0) {
+						fileName := clip.SavedAs
+					}
+					else if (clip.type = "binary" || clip.clip != "") {
+						baseClipName := this.FileName . "_" . clip.createdOn
+						fileName := baseClipName . ".clip"
+						sameNameIndex := 0
+						while (FileExist(this.FolderPath . "\" . fileName)) {
+							sameNameIndex++
+							fileName := baseClipName . "_" . String(sameNameIndex) . ".clip"
+						}
+						FileAppend(clip.content, this.FolderPath . "\" . fileName)
+						clip.SavedAs := fileName
+					}
+					newFileNameList.Push(fileName)
+					fileList.Push({name: fileName, content: clip})
+				}
+				else {
+					MsgBox("Unsupported object found while parsing clips: " . Type(item))
+				}
+			}
+			return fileList
+		}
+
+		cleanFileListOld(fromArray) {
+			for oldClipFile in fromArray {
+				if (oldClipFile is Array) {
+					cleanFileListOld(oldClipFile)
+				}
+				else {
+					if (StrLen(oldClipFile["name"]) > 0 && FileExist(this.FolderPath . "\" . oldClipFile["name"])) {
+						if (!InArray(newFileNameList, oldClipFile["name"])) {
+							FileDelete(this.FolderPath . "\" . oldClipFile["name"])
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Load clips from files inside assigned folder
+	 * @param {String} FolderPath Folder path override parameter
+	 * @param {String} FilePrefix File prefix override parameter
+	 * @return {true|false} Returns "true" if file found, otherwise "false"
+	 */
+	LoadFromFolder(FolderPath := "", FilePrefix?) {
+		this.SetFileParameters(FolderPath, (FilePrefix ?? unset))
+
+		if (FileExist(this.RootFile)) {
+			clipData := this.RootFileContents
+			if (clipData = "") {
+				return true
+			}
+
+			this.Category := clipData.Has("category") ? clipData["category"] : ""
+			/** @type {Array} */
+			fileList := clipData["files"]
+			if (fileList is Array)
+				this.LoadArray(readArray(fileList))
+			else
+				MsgBox("Unable to find `"files`" array in `"" . this.FileName . ".json`"")
+
+			this.IsLoaded := true
+		}
+		else {
+			this.IsLoaded := false
+		}
+		return this.IsLoaded
+
+		readArray(jsonArray) {
+			clipsArray := []
+			for clipFile in jsonArray {
+				if (clipFile is Array) {
+					clipsArray.Push(readArray(clipFile))
+				}
+				else {
+					clip := CustomClip(clipFile["content"], "json")
+					if (StrLen(clipFile["name"]) > 0) {
+						clip.SavedAs := clipFile["name"]
+						clip.SavedAt := this.FolderPath
+					}
+					clipsArray.Push(clip)
+					;if (StrLen(clipFile["name"]) > 0 && FileExist(clip.SavedAs)) {
+					;	clip.clip := FileRead(clip.SavedAs, "RAW")
+					;}
+				}
+			}
+			return clipsArray
+		}
+	}
+
+	/**
+	 * Delete related files inside assigned folder
+	 * @param {String} FolderPath Folder path override parameter
+	 * @param {String} FilePrefix File prefix override parameter
+	 */
+	DeleteFromFolder(FolderPath := "", FilePrefix?) {
+		this.SetFileParameters(FolderPath, (FilePrefix ?? unset))
+
+		this.Clear()
+		this.SaveToFolder()
+
+		if (FileExist(this.RootFile))
+			FileDelete(this.RootFile)
 	}
 
 	/**
@@ -269,6 +575,7 @@ class ClipArray {
 	 * 'csv': Parse string as simple single CSV row
 	 * 
 	 * default: Add string to clip array
+	 * @return {true|false} Returns "true" if mode is supported, otherwise "false"
 	 */
 	LoadString(str, mode) {
 		switch StrLower(mode) {
@@ -281,10 +588,12 @@ class ClipArray {
 			case "tsv":
 				this.LoadArray(String2Array(str, "`t"))
 			case "dsv":
-				this.LoadArray(String2Array(str))
+				this.LoadArray(String2Array(str, , &delimiter := ""))
 			default:
 				this.Add(CustomClip(str))
+				return false
 		}
+		return true
 	}
 
 	/**
@@ -296,12 +605,17 @@ class ClipArray {
 	 * 'csv': Generate CSV string from each clip in array and return it
 	 * 
 	 * default: Return currently selected clip as string
-	 * @returns {String} 
+	 * @returns {String}
 	 */
 	ToString(mode) {
 		separator := ""
 		stitchMode := ""
+		applyTfMode := true
 		switch StrLower(mode) {
+			case "original":
+				separator := "`r`n"
+				stitchMode := "simple"
+				applyTfMode := false
 			case "list":
 				separator := "`r`n"
 				stitchMode := "simple"
@@ -315,13 +629,13 @@ class ClipArray {
 				separator := "`t"
 				stitchMode := "full"
 			default:
-				return this.selected.ToString()
+				return this.selected.ToString(applyTfMode)
 		}
 		
 		if (stitchMode = "simple") {
 			cbArrayStr := ""
 			Loop this.TotalLength {
-				clipStr := this[A_Index].ToString()
+				clipStr := this[A_Index].ToString(applyTfMode)
 				if (StrLen(clipStr)) {
 					if (StrLen(cbArrayStr) > 1)
 						cbArrayStr .= separator
@@ -331,7 +645,7 @@ class ClipArray {
 			return cbArrayStr
 		}
 		else
-			return Array2String(this.__clips, separator)
+			return Array2String(this._clips, separator)
 	}
 
 	/**
@@ -342,31 +656,13 @@ class ClipArray {
 	 * 
 	 * false: Hide tooltip if currently shown
 	 */
-	Tooltip(show := true) {
+	Tooltip(show := true, txtArray := []) {
 		if (show) {
 			if (!this.Length)
 				this.AppendClipboard()
-			
-			listBounds := SubsetBounds(this.TotalLength, 20, this.selectedIdx)
 
-			tipText := "Clipboard (" . listBounds.FullLength . "):`r`nClick to select`r`n"
-			if (listBounds.Start > 1)
-				tipText .= "(" . listBounds.Start - 1 . ")`r`n"
-
-			Loop listBounds.Length {
-				clipIdx := A_Index - 1 + listBounds.Start
-				tipText .= (clipIdx = this.selectedIdx) ? "   >>" : ">>   "
-				tipText .= "|"
-				
-				if (Type(this[clipIdx]) = "String")
-					MsgBox(String(A_Index) . " [" . StringifyObject(listBounds) . "]::" .  this[clipIdx])
-				tipText .= this[clipIdx].name . "`r`n"
-			}
-
-			if (listBounds.End < listBounds.FullLength)
-				tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
-			
-			AddToolTip(tipText, 5000)
+			txtArray.Push(this.TooltipText)
+			AddToolTip(txtArray, 5000)
 		}
 		else {
 			RemoveToolTip()
@@ -375,10 +671,11 @@ class ClipArray {
 
 	/**
 	 * Recursively parse array and convert all elements to {@link CustomClip}
-	 * @param arr Array to parse and convert to {@link CustomClip}
-	 * @returns {Array} 
+	 * @param {Array} arr Array to parse and convert to {@link CustomClip}
+	 * @param {String} transformation Optional transformation mode to apply while parsing
+	 * @returns {Array<CustomClip>} 
 	 */
-	static Array2Clips(arr) {
+	static Array2Clips(arr, transformation := "") {
 		if (!(arr is Array))
 			arr := [arr]
 		clips := []
@@ -387,11 +684,13 @@ class ClipArray {
 			if (item is CustomClip)
 				clip := item				
 			else if (item is Array)
-				clip := this.Array2Clips(item)
+				clip := this.Array2Clips(item, transformation)
 			else if (item is ClipboardAll)
 				clip := CustomClip(item, "binary")
+			else if (IsObject(item))
+				continue
 			else
-				clip := CustomClip(String(item))
+				clip := CustomClip(String(item), , , transformation)
 
 			if (!IsObject(clip))
 				clip := CustomClip("")

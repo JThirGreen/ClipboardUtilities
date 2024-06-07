@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include General.ahk
-#Include ..\Utilities\Text.ahk
+#Include Text.ahk
 
 class SubsetBounds {
 	
@@ -60,6 +60,54 @@ class SubsetBounds {
 }
 
 /**
+ * Search array for a specified value
+ * @param {Array} haystack array to search
+ * @param {Any} needle value to search for in array
+ * @return {true|false}
+ */
+InArray(haystack, needle, &foundIndex?) {
+	for index, item in haystack {
+		if (item = needle) {
+			foundIndex := index
+			return true
+		}
+	}
+	foundIndex := -1
+	return false
+}
+
+/**
+ * Create and return new array by parsing an existing array and applying {callback} on each element of the array
+ * @param {Array} arrayObj Array to parse while mapping
+ * @param {Func} callback Function to be called for each element of the array
+ * 
+ * Function Parameters:
+ * 
+ * - element of array
+ * 
+ * - index of element (optional)
+ * 
+ * - the array being mapped from (optional)
+ * @returns {Array}
+ */
+MapArray(arrayObj, callback) {
+	mapping := []
+	for index, item in arrayObj {
+		if (callback is Func) {
+			switch callback.MinParams {
+				case 1:
+					mapping.Push(callback(item))
+				case 2:
+					mapping.Push(callback(item, index))
+				default:
+					mapping.Push(callback(item, index, arrayObj))
+			}
+		}
+	}
+	return mapping
+}
+
+/**
  * Takes comma-separated string {commaStr} and returns it as an array
  * @param {String} commaStr comma-separated string
  * @returns {Array}
@@ -74,9 +122,13 @@ CommaList2Array(commaStr) {
  * @param {String} delimiter Delimiter to use by parsing
  * 
  * If delimiter is not provided, then determine delimiter via {@link GetDelimiterFromString()}
- * @returns {Array} 
+ * @param {VarRef} delimiterUsed Holds delimiter actually used for reference
+ * @returns {Array}
  */
-String2Array(str, delimiter := GetDelimiterFromString(str)) {
+String2Array(str, delimiter := GetDelimiterFromString(str), &delimiterUsed?) {
+	if (IsSet(delimiterUsed))
+		delimiterUsed := delimiter
+	
 	if (Type(str) != "String" || str = "")
 		return [""]
 	else if (delimiter = "")
