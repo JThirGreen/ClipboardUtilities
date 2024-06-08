@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#Include main.ahk
 #Include ../MenuManager/main.ahk
 
 /**
@@ -96,6 +97,7 @@ BuildPasteMenu(cbArray) {
 	pasteMenu.Add("(&,) Comma List", pasteFunc.Bind("CommaList"))
 	pasteMenu.Add("&CSV", pasteFunc.Bind("csv"))
 	pasteMenu.Add("&TSV", pasteFunc.Bind("tsv"))
+	pasteMenu.Default := "As Copied"
 	return pasteMenu
 
 	pasteFunc(mode, *) {
