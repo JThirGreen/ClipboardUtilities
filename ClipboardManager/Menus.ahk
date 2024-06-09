@@ -120,11 +120,16 @@ BuildClipChangerMenu()
 	}
 
 	clipChangerMenu.Add("Actions", BuildClipChangerActionsMenu())
-	clipChangerMenu.Add()
-
+	
+	addBlank := true
 	for name, cbArray in CbManager.CbArrayMap {
-		if (name != defaultCbArrayName)
+		if (name != defaultCbArrayName) {
+			if (addBlank) {
+				clipChangerMenu.Add()
+				addBlank := false
+			}
 			clipChangerMenu.Add(cbArray.MenuText, SelectCbArrayFunc.Bind(name, false))
+		}
 	}
 	clipChangerMenu.Check(CbManager.CbArray.MenuText)
 	clipChangerMenu.Disable(CbManager.CbArray.MenuText)

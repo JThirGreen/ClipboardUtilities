@@ -4,12 +4,12 @@
 #Include HotKeys.ahk
 
 Suspend(true)
-TrayTip("Loading clipboard manager", "Clipboard Utilities", "Mute")
+TrayTip("Loading", "Clipboard Manager", "Mute")
 /** @type {ClipboardManager} */
 global CbManager := ClipboardManager()
 Suspend(false)
 TrayTip()
-TrayTip("Clipboard manager loaded", "Clipboard Utilities", "Mute")
+TrayTip("Ready", "Clipboard Manager", "Mute")
 SetTimer(TrayTip, 5000)
 
 /** @type {Menu} */

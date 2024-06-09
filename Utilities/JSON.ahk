@@ -59,8 +59,9 @@ class JSON {
         Loop jsonCharArray.Length {
             loopField := jsonCharArray[A_Index]
             if (isComplete) {
-                if (InStr(whitespace, loopField))
+                if (InStr(whitespace, loopField)) {
                     continue
+                }
                 else {
                     isValid := false
                     invalidReason := "Unexpected non-whitespace character after JSON"
@@ -91,17 +92,18 @@ class JSON {
                 case "value":
                     evalValueMode(loopField)
                 case "string":
-                    if (loopField = "`"")
+                    if (loopField = "`"") {
                         evalStringMode(loopField)
+                    }
                     else {
-                        endStrIndex := RegExMatch(jsonStr, "(?<!\\)`"", , A_Index || 1)
+                        RegExMatch(jsonStr, "[^\\](\\\\)*(?P<EndQuote>`")", &endSubStr, A_Index || 1)
+                        endStrIndex := endSubStr.Pos["EndQuote"]
                         fullStr := SubStr(jsonStr, A_Index, endStrIndex - A_Index)
                         splitStr := StrSplit(fullStr, "\")
                         outerIndex := A_Index
                         actBuffer := action.Get("buffer")
                         escaping := false
                         for splitIndex, strFragment in splitStr {
-;
                             newFragment := strFragment
                             if (escaping) {
                                 if (!StrLen(strFragment)) {
@@ -110,9 +112,9 @@ class JSON {
                                 actBuffer.Push("\")
                                 escapedChar := SubStr(strFragment, 1, 1)
                                 evalStringMode(escapedChar)
-                                if (escapedChar = "\")
+                                if (escapedChar = "\") {
                                     escaping := false
-
+                                }
                                 if (StrLen(strFragment) > 1) {
                                     newFragment := SubStr(strFragment, 2)
                                     if (actBuffer is Array && actBuffer.Length && actBuffer[-1] = "\u") {
@@ -128,8 +130,9 @@ class JSON {
                                 escaping := true
                             }
 
-                            if (StrLen(newFragment) > 0)
+                            if (StrLen(newFragment) > 0) {
                                 evalStringMode(newFragment)
+                            }
                         }
                         A_Index := endStrIndex - 1
                     }
@@ -139,28 +142,32 @@ class JSON {
                     isValid := false
                     invalidReason := "`"" . action.Get("mode") . "`" is not a valid parsing mode"
             }
-            if (!isValid)
+            if (!isValid) {
+                ;MsgBox(loopField . "`r`n Returned from: " . action.Get("returnFrom").Get("mode") . "`r`n" . SubStr(jsonStr, A_Index))
                 break
+            }
         }
         if (isValid && isComplete) {
             return rootObject
         }
         else {
-            if (!invalidReason && !isComplete)
+            if (!invalidReason && !isComplete) {
                 invalidReason := "String is not completed JSON"
-
+            }
             MsgBox(invalidReason)
             return ""
         }
         
         getAction() {
-            if (!parserActions.Length)
+            if (!parserActions.Length) {
                 return Map()
+            }
             action := parserActions[-1]
             if (action.Get("mode") = "value" && action.Get("returnFrom") != "") {
                 action.Set("object", action.Get("returnFrom").Get("object"))
-                if (action.Get("returnFrom").Has("raw"))
+                if (action.Get("returnFrom").Has("raw")) {
                     action.Set("raw", action.Get("returnFrom").Get("raw"))
+                }
                 popThisAction()
                 action := getAction()
             }
@@ -260,7 +267,7 @@ class JSON {
         evalValueMode(char) {
             action := getAction()
             if (action.Get("mode") = "value") {
-                if (!action.Get("buffer").Length)
+                if (!action.Get("buffer").Length) {
                     switch char {
                         case "`"":
                             addNextAction("string","")
@@ -276,6 +283,7 @@ class JSON {
                             else
                                 action.Get("buffer").Push(char)
                     }
+                }
                 else {
                     action.Get("buffer").Push(char)
                     thisVal := getBufferString()
@@ -310,18 +318,21 @@ class JSON {
             }
         }
         evalStringMode(char) {
-            if (!isValid)
+            if (!isValid) {
                 return
+            }
             action := getAction()
             if (action.Get("mode") = "string") {
                 currentRaw := (Type(action.Get("raw")) = "String") ? action.Get("raw") : "`""
                 action.Set("raw", currentRaw . char)
 
                 if (!action.Get("buffer").Length) {
-                    if (char = "`"")
+                    if (char = "`"") {
                         strAction := popThisAction() ; Handle immediate string termination that occurs when it's empty
-                    else
+                    }
+                    else {
                         action.Get("buffer").Push(char) ; Initialize string buffer
+                    }
                 }
                 else {
                     if (action.Get("buffer")[-1] = "\") { ; Handle escaped characters
@@ -390,8 +401,9 @@ class JSON {
                     if (IsNumber(result)) {
                         action.Set("object", Number(result))
                         popThisAction()
-                        if (endOfValueMode)
+                        if (endOfValueMode) {
                             evalValueMode(char)
+                        }
                     }
                     else{
                         isValid := false
@@ -411,57 +423,68 @@ class JSON {
                         action.Get("buffer").Push("-")
                         return
                     }
-                    else
+                    else {
                         action.Get("buffer").Push("")
+                    }
                 }
 
                 switch action.Get("buffer").Length {
                     case 1:
-                        if (char = "0")
+                        if (char = "0") {
                             action.Get("buffer").Push("0", "")
-                        else if (RegExMatch(char, "[1-9]"))
+                        }
+                        else if (RegExMatch(char, "[1-9]")) {
                             action.Get("buffer").Push(char)
+                        }
                         else {
                             isValid := false
                             invalidReason := (char = ".") ? "Number cannot start with '.'" : "'" . char . "' is not valid as part of a number"
                         }
                     case 2:
-                        if (RegExMatch(char, "[0-9]"))
+                        if (RegExMatch(char, "[0-9]")) {
                             action.Get("buffer")[2] .= char
-                        else if (char = ".")
+                        }
+                        else if (char = ".") {
                             action.Get("buffer").Push(char)
-                        else if (char = "e" || char = "E")
+                        }
+                        else if (char = "e" || char = "E") {
                             action.Get("buffer").Push("", char)
+                        }
                         else {
                             isValid := false
                             invalidReason := "'" . char . "' is not valid as part of a number"
                         }
                     case 3:
                         if (char = ".")
-                            if (action.Get("buffer")[3] = "")
+                            if (action.Get("buffer")[3] = "") {
                                 action.Get("buffer")[3] := char
+                            }
                             else {
                                 isValid := false
                                 invalidReason := "Error occurred while parsing '.': Ensure that there are not multiple"
                             }
                         else if (RegExMatch(char, "[0-9]"))
-                            if (action.Get("buffer")[3] != "")
+                            if (action.Get("buffer")[3] != "") {
                                 action.Get("buffer")[3] .= char
+                            }
                             else {
                                 isValid := false
                                 invalidReason := "Error occurred while parsing '" . char . "': Trailing zeros are not allowed"
                             }
-                        else if (char = "e" || char = "E")
+                        else if (char = "e" || char = "E") {
                             action.Get("buffer").Push(char)
+                        }
                         else {
                             isValid := false
                             invalidReason := "'" . char . "' is not valid as part of a fraction"
                         }
                     case 4:
-                        if (StrLen(action.Get("buffer")[4]) = 1 && (char = "-" || char = "+"))
+                        if (StrLen(action.Get("buffer")[4]) = 1 && (char = "-" || char = "+")) {
                             action.Get("buffer")[4] .= char
-                        else if (RegExMatch(char, "[0-9]"))
+                        }
+                        else if (RegExMatch(char, "[0-9]")) {
                             action.Get("buffer")[4] .= char
+                        }
                         else  {
                             isValid := false
                             invalidReason := "'" . char . "' is not valid as part of an exponent"
@@ -524,10 +547,12 @@ class JSON {
     static stringify(obj, replacer?, space?) {
         spacer := ""
         if (IsSet(space)) {
-            if (Type(space) = "String")
+            if (Type(space) = "String") {
                 spacer := space
-            else if (IsNumber(space))
+            }
+            else if (IsNumber(space)) {
                 spacer := repeatString(" ", Max(0, Min(10, space)))
+            }
         }
         newLine := (StrLen(spacer) ? "`r`n" : "")
         separator := (StrLen(spacer) ? " " : "")
@@ -566,8 +591,9 @@ class JSON {
                         }
                     }
                     objStr := "["
-                    if (StrLen(lines))
+                    if (StrLen(lines)) {
                         objStr .= lines . newLine
+                    }
                     objStr .= "]"
                 }
             }
@@ -591,8 +617,9 @@ class JSON {
                         }
                     }
                     objStr := "{"
-                    if (StrLen(lines))
+                    if (StrLen(lines)) {
                         objStr .= lines . newLine
+                    }
                     objStr .= "}"
                 }
             }
@@ -608,10 +635,12 @@ class JSON {
             else if (Type(thisObj) = "String") {
                 objStr := escapeString(thisObj)
             }
-            else if (isNumber(thisObj))
+            else if (isNumber(thisObj)) {
                 objStr := String(thisObj)
-            else
+            }
+            else {
                 objStr := "`"" . String(thisObj) . "`""
+            }
 
             if (isRoot ?? false) {
                 return objStr
@@ -661,8 +690,9 @@ class JSON {
             content := Map()
             content.Set("type", Type(obj))
             content.Set("properties", ObjectPropsToMap(obj))
-            if (IsSet(items))
+            if (IsSet(items)) {
                 content.Set("items", items)
+            }
 
             return content
         }

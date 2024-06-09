@@ -101,7 +101,10 @@ CoordMode("Menu")
 ^+XButton2::
 ^+Browser_Forward::
 {
-
+	;if (!GetKeyState("v", "P")) {
+	;	MsgBox("Hotkey blocked but 'v' is no longer pressed:`r`n" . ThisHotkey)
+	;	Send(ThisHotkey)
+	;}
 }
 
 #HotIf GetKeyState("Ctrl", "P") && GetKeyState("Shift", "P") && GetKeyState("v", "P")
