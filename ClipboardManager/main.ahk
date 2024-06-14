@@ -3,14 +3,22 @@
 #Include Menus.ahk
 #Include HotKeys.ahk
 
-Suspend(true)
-TrayTip("Loading", "Clipboard Manager", "Mute")
+global LoadingTrayTipActive := false
+LoadingTrayTip() {
+	global LoadingTrayTipActive := true
+	TrayTip("Loading", "Clipboard Manager", "Mute")
+}
+SetTimer(LoadingTrayTip, -1000)
 /** @type {ClipboardManager} */
 global CbManager := ClipboardManager()
-Suspend(false)
-TrayTip()
-TrayTip("Ready", "Clipboard Manager", "Mute")
-SetTimer(TrayTip, 5000)
+if (!LoadingTrayTipActive) {
+	SetTimer(LoadingTrayTip, 0)
+}
+else {
+	TrayTip()
+	TrayTip("Ready", "Clipboard Manager", "Mute")
+	SetTimer(TrayTip, -5000)
+}
 
 /** @type {Menu} */
 global CustomClipboardMenu := Menu()

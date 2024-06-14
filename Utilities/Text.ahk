@@ -508,30 +508,50 @@ WrapTextMultiline(txt, opener, closer) {
 }
 
 /**
- * Return true if {haystack} starts with {needle}, otherwise return false. Comparison is case sensitive by default.
+ * Return true if {haystack} starts with {needle}, otherwise return "false". Comparison is case sensitive by default.
  * @param {String} haystack
  * @param {String} needle
- * @param {Integer} caseSense If set to false, then the comparison becomes case insensitive
+ * @param {Integer} caseSense If set to "false", then the comparison becomes case insensitive
+ * @returns {true|false}
  */
 StartsWith(haystack, needle, caseSense := true) {
 	return (InStr(haystack, needle, caseSense) = 1) ? true : false
 }
 
 /**
- * Return true if {haystack} ends with {needle}, otherwise return false. Comparison is case sensitive by default.
+ * Return true if {haystack} ends with {needle}, otherwise return "false". Comparison is case sensitive by default.
  * @param {String} haystack
  * @param {String} needle
- * @param {Integer} caseSense If set to false, then the comparison becomes case insensitive
+ * @param {Integer} caseSense If set to "false", then the comparison becomes case insensitive
+ * @returns {true|false}
  */
 EndsWith(haystack, needle, caseSense := true) {
-	return ((InStr(haystack, needle, caseSense) - 1) = (StrLen(haystack) - StrLen(needle))) ? true : false
+	return ((InStr(haystack, needle, caseSense, -1) - 1) = (StrLen(haystack) - StrLen(needle))) ? true : false
 }
 
 /**
  * Removes carriage returns (`r) and replaces them with new lines (`n)
- * @param str String to clean
+ * @param {String} str String to clean
+ * @param {String} trimmed If set to "true", then also trim new lines from the result
  * @returns {String} 
  */
-CleanNewLines(str) {
-	return StrReplace(StrReplace(str,'`r`n','`n'),'`r','`n')
+CleanNewLines(str, trimmed := false) {
+	cleanStr := StrReplace(StrReplace(str,'`r`n','`n'),'`r','`n')
+	return trimmed ? Trim(cleanStr, "`n") : cleanStr
+}
+
+TrimIfNotContains(str, trimStr) {
+	trimCheckRegex := trimStr
+	trimCheckRegex := StrReplace(trimCheckRegex, "\", "\\")
+	trimCheckRegex := StrReplace(trimCheckRegex, "`t", "\t")
+	trimCheckRegex := StrReplace(trimCheckRegex, "`r", "\r")
+	trimCheckRegex := StrReplace(trimCheckRegex, "`n", "\n")
+	regexCheck := "s)^.+(?<!(" . trimCheckRegex . "))(" . trimCheckRegex . ")(?!(" . trimCheckRegex . "|$))"
+	if (!RegExMatch(str, regexCheck, &matchInfo)) {
+		strLength := StrLen(str)
+		startIdx := 1 + (StartsWith(str, trimStr) ? StrLen(trimStr) : 0)
+		endIdx := strLength - (EndsWith(str, trimStr) ? StrLen(trimStr) : 0)
+		return SubStr(str, startIdx, endIdx - startIdx + 1)
+	}
+	return str
 }

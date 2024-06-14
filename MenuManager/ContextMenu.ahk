@@ -4,6 +4,7 @@
 #Include ..\Utilities\Text.ahk
 #Include ..\Utilities\XMLTools.ahk
 #Include ..\Utilities\TextTrimmer.ahk
+#Include ..\Utilities\Resource.ahk
 
 ;-----------------------------+
 ;    variable definitions     |
@@ -49,6 +50,8 @@ global selectedTitle := SelectTitle
  * @type {Array}
  */
 global SubMenuReloads := []
+
+global menuIcons := Map("xml", Resource("Images\XML.ico", 14))
 
 /**
  * Reload menu and any extension menus configured with a reload function
@@ -183,61 +186,61 @@ XMLUtilsMenu.Add("&&lt;&&gt; to <>", xDecode)
 /** @type {Menu} */
 global ForEachMenu := Menu()
 ForEachMenu.Add("&for-each", xslForEach)
-ForEachMenu.SetIcon("&for-each", "Images\XML.png",, 0)
+ForEachMenu.SetIcon("&for-each", menuIcons["xml"].Handle, , 0)
 ForEachMenu.Add("&Sorted", xslForEachSort)
-ForEachMenu.SetIcon("&Sorted", "Images\XML.png",, 0)
+ForEachMenu.SetIcon("&Sorted", menuIcons["xml"].Handle, , 0)
 ForEachMenu.Add("Sorted (&Numeric)", xslForEachSortNumeric)
-ForEachMenu.SetIcon("Sorted (&Numeric)", "Images\XML.png",, 0)
+ForEachMenu.SetIcon("Sorted (&Numeric)", menuIcons["xml"].Handle, , 0)
 ForEachMenu.Default := "&for-each"
 
 /** @type {Menu} */
 global SelfTagMenu := Menu()
 SelfTagMenu.Add("#&SELF", xslSelfTag)
-SelfTagMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("#&SELF", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Add("#&EMPTY", xslEmptySelfTag)
-SelfTagMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("#&EMPTY", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Add("&value-of", xslValueOfSelfTag)
-SelfTagMenu.SetIcon("&value-of", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("&value-of", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Add("&copy-of", xslCopyOfSelfTag)
-SelfTagMenu.SetIcon("&copy-of", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("&copy-of", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Add("&if", xslIfSelfTag)
-SelfTagMenu.SetIcon("&if", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("&if", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Add("c&hoose", xslChooseSelfTag)
-SelfTagMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
+SelfTagMenu.SetIcon("c&hoose", menuIcons["xml"].Handle, , 0)
 SelfTagMenu.Default := "#&EMPTY"
 
 /** @type {Menu} */
 global VariableMenu := Menu()
 VariableMenu.Add("#&SELF", xslVar)
-VariableMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
+VariableMenu.SetIcon("#&SELF", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("#&EMPTY", xslEmptyVar)
-VariableMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
+VariableMenu.SetIcon("#&EMPTY", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("se&lect", xslSelectVar)
-VariableMenu.SetIcon("se&lect", "Images\XML.png",, 0)
+VariableMenu.SetIcon("se&lect", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("&value-of", xslValueOfVar)
-VariableMenu.SetIcon("&value-of", "Images\XML.png",, 0)
+VariableMenu.SetIcon("&value-of", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("&copy-of", xslCopyOfVar)
-VariableMenu.SetIcon("&copy-of", "Images\XML.png",, 0)
+VariableMenu.SetIcon("&copy-of", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("&if", xslIfVar)
-VariableMenu.SetIcon("&if", "Images\XML.png",, 0)
+VariableMenu.SetIcon("&if", menuIcons["xml"].Handle, , 0)
 VariableMenu.Add("c&hoose", xslChooseVar)
-VariableMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
+VariableMenu.SetIcon("c&hoose", menuIcons["xml"].Handle, , 0)
 VariableMenu.Default := "#&EMPTY"
 
 /** @type {Menu} */
 global AttributeMenu := Menu()
 AttributeMenu.Add("#&SELF", xslAttr)
-AttributeMenu.SetIcon("#&SELF", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("#&SELF", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Add("#&EMPTY", xslEmptyAttr)
-AttributeMenu.SetIcon("#&EMPTY", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("#&EMPTY", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Add("&value-of", xslValueOfAttr)
-AttributeMenu.SetIcon("&value-of", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("&value-of", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Add("&copy-of", xslCopyOfAttr)
-AttributeMenu.SetIcon("&copy-of", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("&copy-of", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Add("&if", xslIfAttr)
-AttributeMenu.SetIcon("&if", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("&if", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Add("c&hoose", xslChooseAttr)
-AttributeMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
+AttributeMenu.SetIcon("c&hoose", menuIcons["xml"].Handle, , 0)
 AttributeMenu.Default := "#&EMPTY"
 
 /** @type {Menu} */
@@ -262,28 +265,28 @@ CustomContextMenu.Add("FromCamelCase", fromCamel)
 CustomContextMenu.Add("Camel > Case", FromCamelMenu)
 CustomContextMenu.Add()
 CustomContextMenu.Add("&value-of", xslValueOfWrap)
-CustomContextMenu.SetIcon("&value-of", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&value-of", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("&copy-of", xslCopyOfWrap)
-CustomContextMenu.SetIcon("&copy-of", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&copy-of", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("c&hoose", xslChooseWrap)
-CustomContextMenu.SetIcon("c&hoose", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("c&hoose", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("&if", xslIfWrap)
-CustomContextMenu.SetIcon("&if", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&if", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("&text", xslTextWrap)
-CustomContextMenu.SetIcon("&text", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&text", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("&for-each", ForEachMenu)
-CustomContextMenu.SetIcon("&for-each", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&for-each", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("<&node>...</node>", SelfTagMenu)
-CustomContextMenu.SetIcon("<&node>...</node>", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("<&node>...</node>", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("va&riable", VariableMenu)
-CustomContextMenu.SetIcon("va&riable", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("va&riable", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("&attribute", AttributeMenu)
-CustomContextMenu.SetIcon("&attribute", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&attribute", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add("Copy X&Path", copyXPath)
-CustomContextMenu.SetIcon("Copy X&Path", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("Copy X&Path", menuIcons["xml"].Handle, , 0)
 CustomContextMenu.Add()
 CustomContextMenu.Add("&XML Utils", XMLUtilsMenu)
-CustomContextMenu.SetIcon("&XML Utils", "Images\XML.png",, 0)
+CustomContextMenu.SetIcon("&XML Utils", menuIcons["xml"].Handle, , 0)
 
 MarkSelectMode()
 

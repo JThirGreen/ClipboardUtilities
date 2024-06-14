@@ -51,9 +51,11 @@ BuildCbArrayMenu(cbArray) {
 		cbArrayMenu.Disable("Bulk &Paste")
 	}
 
-	listLimitBounds := SubsetBounds(cbArray.TotalLength, CbManager.MenuItemsCount, cbArray.selectedIdx)
+	clipCount := cbArray.TotalLength
+	/** @type {SubsetBounds} */
+	listLimitBounds := SubsetBounds(clipCount, CbManager.MenuItemsCount, cbArray.selectedIdx)
 
-	Loop cbArray.TotalLength {
+	Loop clipCount {
 		funcInstance := ClipMenuAction.Bind(A_Index)
 		menuTitle := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
 		menuTitle .= ": " . StrReplace(cbArray[A_Index].name, "&", "&&") . Chr(0xA0)
@@ -61,21 +63,24 @@ BuildCbArrayMenu(cbArray) {
 		; Add limited range to main clip menu based on "MenuItemsCount" config
 		if (listLimitBounds.Start <= A_Index && A_Index <= listLimitBounds.End) {
 			cbArrayMenu.Add(menuTitle, funcInstance)
-			if (A_Index = Max(1, cbArray.selectedIdx))
-					cbArrayMenu.Check(menuTitle)
+			if (A_Index = Max(1, cbArray.selectedIdx)) {
+				cbArrayMenu.Check(menuTitle)
+			}
 		}
 
 		cbArrayContentMenu.Add(menuTitle, funcInstance)
-		if (A_Index = Max(1, cbArray.selectedIdx))
+		if (A_Index = Max(1, cbArray.selectedIdx)) {
 			cbArrayContentMenu.Check(menuTitle)
-		if (cbArray.clips.GetRelativeArrayAndIndex(A_Index).IsLast)
+		}
+		if (A_Index < clipCount && cbArray.clips.GetRelativeArrayAndIndex(A_Index).IsLast) {
 			cbArrayContentMenu.Add()
+		}
 	}
-	if (cbArray.TotalLength > CbManager.MenuItemsCount) {
+	if (clipCount > CbManager.MenuItemsCount) {
 		cbArrayMenu.Add()
-		cbArrayMenu.Add("&All (" . cbArray.TotalLength . ")", cbArrayContentMenu)
+		cbArrayMenu.Add("&All (" . clipCount . ")", cbArrayContentMenu)
 	}
-	else if (!cbArray.TotalLength) {
+	else if (!clipCount) {
 		cbArrayMenu.Add("All (0)", cbArrayContentMenu)
 		cbArrayMenu.Disable("All (0)")
 	}
@@ -154,10 +159,17 @@ BuildClipChangerActionsMenu() {
 
 	ActionFunc(methodName, parameters?, *) {
 		global CbManager
-		if (CbManager.HasMethod(methodName))
-			CbManager.%methodName%(parameters*)
-		else
+		if (CbManager.HasMethod(methodName)) {
+			if (parameters is Array) {
+				CbManager.%methodName%(parameters*)
+			}
+			else {
+				CbManager.%methodName%()
+			}
+		}
+		else {
 			MsgBox("`"" . methodName . "`" is not a valid action")
+		}
 	}
 }
 

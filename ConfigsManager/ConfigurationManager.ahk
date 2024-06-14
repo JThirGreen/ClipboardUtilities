@@ -18,7 +18,7 @@ class ConfigurationManager {
 	}
 
 	LoadGuiXml() {
-		xmlStr := FileRead("ConfigsManager/gui.xml")
+		xmlStr := Resource("ConfigsManager\gui.xml", 6).Value
 		this._guiXml := XML.loadXML(xmlStr)
 	}
 

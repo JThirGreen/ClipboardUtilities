@@ -179,7 +179,7 @@ class ClipArray {
 				
 				if (Type(this[clipIdx]) = "String")
 					MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
-				tipText .= this[clipIdx].name . "`r`n"
+				tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].name) : this[clipIdx].name) . "`r`n"
 			}
 
 			if (listBounds.End < listBounds.FullLength)
@@ -525,9 +525,6 @@ class ClipArray {
 						clip.SavedAt := this.FolderPath
 					}
 					clipsArray.Push(clip)
-					;if (StrLen(clipFile["name"]) > 0 && FileExist(clip.SavedAs)) {
-					;	clip.clip := FileRead(clip.SavedAs, "RAW")
-					;}
 				}
 			}
 			return clipsArray
@@ -636,6 +633,9 @@ class ClipArray {
 			cbArrayStr := ""
 			Loop this.TotalLength {
 				clipStr := this[A_Index].ToString(applyTfMode)
+				if (applyTfMode && this.trimBulkCopy) {
+					clipStr := Trim(clipStr)
+				}
 				if (StrLen(clipStr)) {
 					if (StrLen(cbArrayStr) > 1)
 						cbArrayStr .= separator
@@ -676,25 +676,51 @@ class ClipArray {
 	 * @returns {Array<CustomClip>} 
 	 */
 	static Array2Clips(arr, transformation := "") {
-		if (!(arr is Array))
+		if (!(arr is Array)) {
 			arr := [arr]
+		}
+		/** @type {Array<CustomClip>} */
 		clips := []
 		for item in arr {
 			clip := ""
-			if (item is CustomClip)
-				clip := item				
-			else if (item is Array)
+			if (item is CustomClip) {
+				clip := item
+			}
+			else if (item is Array) {
 				clip := this.Array2Clips(item, transformation)
-			else if (item is ClipboardAll)
+				if (clip.Length = 0 && transformation = "Trim" && clips.Length = 0) {
+					continue
+				}
+			}
+			else if (item is ClipboardAll) {
 				clip := CustomClip(item, "binary")
-			else if (IsObject(item))
+			}
+			else if (IsObject(item)) {
 				continue
-			else
+			}
+			else {
+				if (StrLen(String(item)) = 0 && transformation = "Trim" && clips.Length = 0) {
+					continue
+				}
 				clip := CustomClip(String(item), , , transformation)
+			}
 
-			if (!IsObject(clip))
+			if (!IsObject(clip)) {
 				clip := CustomClip("")
+			}
 			clips.Push(clip)
+		}
+		if (transformation = "Trim") {
+			while (clips.Length > 0) {
+				lastClip := clips[-1]
+				poppedClip := (((lastClip is Array) && (lastClip.Length = 0)) || ((lastClip is CustomClip) && (StrLen(lastClip.text) = 0)))
+					? clips.Pop()
+					: ""
+
+				if (poppedClip = "") {
+					break
+				}
+			}
 		}
 		return clips
 	}

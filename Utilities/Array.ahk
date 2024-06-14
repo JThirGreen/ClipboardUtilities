@@ -125,14 +125,21 @@ CommaList2Array(commaStr) {
  * @param {VarRef} delimiterUsed Holds delimiter actually used for reference
  * @returns {Array}
  */
-String2Array(str, delimiter := GetDelimiterFromString(str), &delimiterUsed?) {
-	if (IsSet(delimiterUsed))
+String2Array(str, delimiter := "", &delimiterUsed?) {
+	if (StrLen(delimiter) = 0) {
+		str := TrimIfNotContains(CleanNewLines(str), "`n")
+		delimiter := GetDelimiterFromString(str)
+	}
+	if (IsSet(delimiterUsed)) {
 		delimiterUsed := delimiter
+	}
 	
-	if (Type(str) != "String" || str = "")
+	if (Type(str) != "String" || str = "") {
 		return [""]
-	else if (delimiter = "")
+	}
+	else if (delimiter = "") {
 		return [str]
+	}
 	else if (delimiter = "`n" || (!InStr(str, "`"") && !InStr(str, "`n"))) {
 		return StrSplit(CleanNewLines(str), delimiter)
 	}
@@ -143,23 +150,28 @@ String2Array(str, delimiter := GetDelimiterFromString(str), &delimiterUsed?) {
 		strElem := ""
 		Loop Parse, str {
 			if (inQuot) {
-				if (!quotMode)
+				if (!quotMode) {
 					return []
+				}
 
-				if (A_LoopField = "`"")
+				if (A_LoopField = "`"") {
 					inQuot := false
-				else
+				}
+				else {
 					strElem .= A_LoopField
+				}
 			}
 			else {
 				switch A_LoopField {
 					case "`r":
 						continue
 					case "`"":
-						if (quotMode)
+						if (quotMode) {
 							strElem .= A_LoopField
-						else
+						}
+						else {
 							quotMode := true
+						}
 						inQuot := true
 					case delimiter, "`n":
 						quotMode := false
@@ -170,59 +182,23 @@ String2Array(str, delimiter := GetDelimiterFromString(str), &delimiterUsed?) {
 							lineArray := []
 						}
 					default:
-						if (!quotMode)
+						if (!quotMode) {
 							strElem .= A_LoopField
-						else
+						}
+						else {
 							return []
+						}
 				}
 			}
 		}
-		lineArray.Push(strElem)
-		strArray.Push(lineArray)
+
+		; Add final line if it is not blank
+		if (lineArray.Length > 0 || StrLen(strElem) > 0) {
+			lineArray.Push(strElem)
+			strArray.Push(lineArray)
+		}
 		return strArray
 	}
-}
-
-/**
- * Takes string element to be added to delimited string and, if needed, applies quotation and escapes its quotes
- * @param {String} str String element
- * @param {String} delimiter Delimiter to be used to determine if quotation is needed
- * @returns {String} 
- */
-QuoteDelimited(str, delimiter) {
-	if (InStr(str, delimiter) || InStr(str, "`""))
-		return "`"" . StrReplace(str, "`"", "`"`"") . "`""
-	else
-		return str
-}
-/**
- * Takes string element parsed from delimited string and unescapes its quotes
- * @param {String} str String of delimited element
- * @returns {String} 
- */
-DequoteDelimited(str) {
-	if (InStr(str, "`"",, 1) = 1 && InStr(str, "`"",, -1) = StrLen(str)) {
-		dequotedStr := ""
-		strElements := StrSplit(str, "`"")
-		quotCount := 0
-		for idx, elem in strElements {
-			if (elem = "") {
-				if (IsEven(quotCount) && idx > 1 && idx < strElements.Length)
-					dequotedStr .= "`""
-				quotCount++
-			}
-			else if (IsOdd(quotCount)) {
-				dequotedStr .= elem
-				quotCount := 0
-			}
-			else {
-				return str
-			}
-		}
-		if (dequotedStr != "")
-			return dequotedStr
-	}
-	return str
 }
 
 /**
@@ -241,8 +217,9 @@ DequoteDelimited(str) {
  * @returns {String} Delimiter found
  */
 GetDelimiterFromString(str) {
-	if (Type(str) != "String" || str = "")
+	if (Type(str) != "String" || str = "") {
 		return ""
+	}
 
 	validDelimiters := ",`t"
 	firstQuotPos := InStr(str, "`"")
@@ -251,8 +228,9 @@ GetDelimiterFromString(str) {
 		if (firstQuotPos = 1) {
 			quotCount := -1
 			Loop Parse, str {
-				if (A_LoopField = "`"")
+				if (A_LoopField = "`"") {
 					quotCount++
+				}
 				else if (IsOdd(quotCount)) {
 					delimiter := A_LoopField
 					break
@@ -262,10 +240,13 @@ GetDelimiterFromString(str) {
 		else {
 			delimiter := SubStr(str, firstQuotPos - 1, 1)
 		}
-		if (InStr(validDelimiters, delimiter))
+
+		if (InStr(validDelimiters, delimiter)) {
 			return delimiter
-		else
+		}
+		else {
 			return InStr(str, "`n") ? "`n" : ""
+		}
 	}
 	else if (InStr(str, "`n")) {
 		commaCount := -1, tabCount := -1, lineNumber := 0
@@ -279,28 +260,82 @@ GetDelimiterFromString(str) {
 				tabCount := lineTabCount
 			}
 			else {
-				if (lineCommaCount != commaCount)
+				if (lineCommaCount != commaCount) {
 					commaCount := 0
-				if (lineTabCount != tabCount)
+				}
+				if (lineTabCount != tabCount) {
 					tabCount := 0
+				}
 
-				if (commaCount > 0 && !tabCount)
+				if (commaCount > 0 && !tabCount) {
 					return ","
-				else if (tabCount > 0 && !commaCount)
+				}
+				else if (tabCount > 0 && !commaCount) {
 					return "`t"
-				else
+				}
+				else {
 					return "`n"
+				}
 			}
 		}
-		if (commaCount = tabCount)
+		if (commaCount = tabCount) {
 			return ","
+		}
 	}
-	else if (InStr(str, ","))
+	else if (InStr(str, ",")) {
 		return ","
-	else if (InStr(str, "`t"))
+	}
+	else if (InStr(str, "`t")) {
 		return "`t"
+	}
 
 	return ""
+}
+
+/**
+ * Takes string element to be added to delimited string and, if needed, applies quotation and escapes its quotes
+ * @param {String} str String element
+ * @param {String} delimiter Delimiter to be used to determine if quotation is needed
+ * @returns {String} 
+ */
+QuoteDelimited(str, delimiter) {
+	if (InStr(str, delimiter) || InStr(str, "`"")) {
+		return "`"" . StrReplace(str, "`"", "`"`"") . "`""
+	}
+	else {
+		return str
+	}
+}
+/**
+ * Takes string element parsed from delimited string and unescapes its quotes
+ * @param {String} str String of delimited element
+ * @returns {String} 
+ */
+DequoteDelimited(str) {
+	if (InStr(str, "`"",, 1) = 1 && InStr(str, "`"",, -1) = StrLen(str)) {
+		dequotedStr := ""
+		strElements := StrSplit(str, "`"")
+		quotCount := 0
+		for idx, elem in strElements {
+			if (elem = "") {
+				if (IsEven(quotCount) && idx > 1 && idx < strElements.Length) {
+					dequotedStr .= "`""
+				}
+				quotCount++
+			}
+			else if (IsOdd(quotCount)) {
+				dequotedStr .= elem
+				quotCount := 0
+			}
+			else {
+				return str
+			}
+		}
+		if (dequotedStr != "") {
+			return dequotedStr
+		}
+	}
+	return str
 }
 
 /**

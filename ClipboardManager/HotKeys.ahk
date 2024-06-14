@@ -220,6 +220,18 @@ CoordMode("Menu")
 		customClipboardWheelAction(1)
 	}
 
+	; Ctrl + Shift + V + L
+	v & l::
+	{
+		CbManager.Paste("List")
+	}
+
+	; Ctrl + Shift + V + ,
+	v & ,::
+	{
+		CbManager.Paste("commalist")
+	}
+
 	v & 0::
 	v & NumpadIns:: {
 		SelectCbArray(0)

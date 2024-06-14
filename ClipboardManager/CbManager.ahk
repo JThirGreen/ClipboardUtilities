@@ -319,10 +319,10 @@ Class ClipboardManager {
 		}
 		this.CbArray := this.CbArrayMap[name]
 		this.SelectedCbArrayName := name
-		if (FileExist("Images\cb" . name . ".png"))
-			TraySetIcon("Images\cb" . name . ".png")
-		else
-			TraySetIcon("Images\tray.png")
+
+		validName := RegExMatch(name, "[1-9]")
+		TraySetIcon(Resource((validName ? ("Images\cb" . name . ".ico") : "Images\tray.ico"), 14).Handle)
+		
 		if (showToolTip) {
 			this.Tooltip()
 		}
