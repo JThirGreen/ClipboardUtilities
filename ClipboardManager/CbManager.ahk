@@ -6,6 +6,7 @@
 #Include ..\Utilities\Configs.ahk
 #Include ..\Utilities\XMLTools.ahk
 #Include ..\Utilities\Clipboard.ahk
+#Include ..\Utilities\Resource.ahk
 #Include ClipArray.ahk
 
 Class ClipboardManager {
@@ -15,17 +16,17 @@ Class ClipboardManager {
 	 * Flag for whether to store clip files or keep exclusively in memory
 	 * @type {true|false}
 	 */
-	UseClipFiles => this.configs.Get("useClipFiles", false, true)
+	UseClipFiles => this.configs.Get("useClipFiles")
 	/**
 	 * Hold delay for certain hotkeys before disabling native behavior on release (in ms)
 	 * @type {Integer}
 	 */
-	NativeHotKeyTimeout => this.configs.Get("nativeHotKeyTimeout", 500, true)
+	NativeHotKeyTimeout => this.configs.Get("nativeHotKeyTimeout")
 	/**
 	 * Number of CB array menu options show in the menu without expanding "All" menu
 	 * @type {Integer}
 	 */
-	MenuItemsCount => this.configs.Get("menuItemsCount", 4, true)
+	MenuItemsCount => this.configs.Get("menuItemsCount")
 
 	/**
 	 * {@link ClipArray} for holding clipboard history of CbManager
@@ -80,6 +81,11 @@ Class ClipboardManager {
 	OnCbChangeHandler := ObjBindMethod(this, "OnCbChange")
 
 	__New() {
+		; Get config values to ensure defaults are populated
+		this.configs.Get("useClipFiles", false, true)
+		this.configs.Get("nativeHotKeyTimeout", 250, true)
+		this.configs.Get("menuItemsCount", 5, true)
+
 		this.SelectCbArray(0, false)
 		this.CbArrayMap[0].Category := "Default"
 		this.LoadCbArrays()

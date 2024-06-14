@@ -25,6 +25,8 @@ A_ScriptName := "Clipboard Utilities"
 ;@Ahk2Exe-AddResource *10 Images\cb9.ico
 ;@Ahk2Exe-AddResource  *6 ConfigsManager\gui.xml
 
+A_IconTip := A_ScriptName
+
 Resource("Images\tray.ico", 14)
 Resource("Images\XML.ico", 14)
 Resource("Images\cb1.ico", 14)

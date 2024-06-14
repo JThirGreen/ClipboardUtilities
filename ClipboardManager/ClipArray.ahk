@@ -15,17 +15,17 @@ class ClipArray {
 	 * Maximum number of clips in clip history
 	 * @type {Integer}
 	 */
-	maxClips => this.configs.Get("maxClips", 20, true)
+	maxClips => this.configs.Get("maxClips")
 	/**
 	 * Maximum number of clips shown at a time in tooltip selector
 	 * @type {Integer}
 	 */
-	maxToolTipItems => this.configs.Get("maxTooltipItems", 20, true)
+	maxToolTipItems => this.configs.Get("maxTooltipItems")
 	/**
 	 * Trim whitespaces when bulk copying
 	 * @type {true|false}
 	 */
-	trimBulkCopy => this.configs.Get("trimBulkCopy", false, true)
+	trimBulkCopy => this.configs.Get("trimBulkCopy")
 
 	/**
 	 * Index of currently selected clip
@@ -111,6 +111,11 @@ class ClipArray {
 	IsLoaded := false
 
 	__New(saveToFile := false, Name := "Clips") {
+		; Get config values to ensure defaults are populated
+		this.configs.Get("maxClips", 20, true)
+		this.configs.Get("maxTooltipItems", 20, true)
+		this.configs.Get("trimBulkCopy", false, true)
+
 		this.configs.SetConfigFromPath("saveToFile", saveToFile, true)
 		this.Name := Name
 	}

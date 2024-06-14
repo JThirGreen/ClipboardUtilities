@@ -8,8 +8,6 @@ SetKeyDelay(-1, -1)
 SendMode("Input")  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir(A_ScriptDir)  ; Ensures a consistent starting directory.
 
-TraySetIcon(Resource("Images\tray.ico", 14).Handle)
-A_IconTip := "Clipboard Utilities"
 
 /**
  * Global variable used exclusively for debugging
@@ -21,6 +19,8 @@ global tempGlobal := ""
 #Include Utilities\Resource.ahk
 #Include ConfigsManager\main.ahk
 #Include ClipboardManager\main.ahk
+
+TraySetIcon(Resource("Images\tray.ico", 14).Handle)
 
 MainInit()
 

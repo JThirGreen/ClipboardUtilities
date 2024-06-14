@@ -1,10 +1,14 @@
-#Include ../Utilities/General.ahk
-#Include ../Utilities/Array.ahk
-#Include ../Utilities/XML.ahk
-#Include ../Utilities/Configs.ahk
+#Requires AutoHotkey v2.0
+#Include ..\Utilities\General.ahk
+#Include ..\Utilities\Array.ahk
+#Include ..\Utilities\XML.ahk
+#Include ..\Utilities\Configs.ahk
+#Include ..\Utilities\Resource.ahk
 
 class ConfigurationManager {
 	_gui := Gui("")
+
+	/** @type {Map<String,ConfigurationControl>} */
 	_controls := Map()
 	_guiXml := ""
 
@@ -23,6 +27,7 @@ class ConfigurationManager {
 	}
 
 	ShowGui() {
+		this.UpdateControls()
 		this._gui.Show()
 	}
 
@@ -120,6 +125,12 @@ class ConfigurationManager {
 	CreateControl(Name, Type, Description, configPath, guiPosition, AdditionalProperties?) {
 		this._controls.Set(Name, ConfigurationControl(this._gui, Name, Type, Description, configPath, guiPosition, IsSet(AdditionalProperties) ? AdditionalProperties : unset))
 	}
+
+	UpdateControls() {
+		for name, ctrl in this._controls {
+			ctrl.LoadValue()
+		}
+	}
 }
 
 class ConfigurationControl {
@@ -215,7 +226,6 @@ class ConfigurationControl {
 						break
 					}
 				}
-
 			case "StartUp":
 				this._ctrlComponents["Input"].Value := this.HasStartUpShortcut()
 			default:
@@ -235,12 +245,14 @@ class ConfigurationControl {
 				ScriptConfigs.SetConfigFromPath(this._configPath, this._addedProps["Options"][value].Value, saveToFile)
 			case "StartUp":
 				if (value) {
-					if (!this.HasStartUpShortcut())
+					if (!this.HasStartUpShortcut()) {
 						FileCreateShortcut(A_ScriptFullPath, A_Startup . "\" . A_ScriptName . ".lnk")
+					}
 				}
 				else {
-					if (this.HasStartUpShortcut(&startUpFullPath))
+					if (this.HasStartUpShortcut(&startUpFullPath)) {
 						FileDelete(startUpFullPath)
+					}
 				}
 			default:
 				ScriptConfigs.SetConfigFromPath(this._configPath, value, saveToFile)
