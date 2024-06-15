@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include Clipboard.ahk
+#Include Text.ahk
 
 ; Alt + Shift + <
 ; XML encode [< >]
@@ -62,9 +63,26 @@ XMLTransform_cb(tfType, wrapType:="") {
 		case "comment","uncomment":
 			forceSelectMode := true
 	}
-	txt := GetClipboardValue(forceSelectMode ? "select" : "")
+	txt := CleanNewLines(GetClipboardValue(forceSelectMode ? "select" : "")),
+	newTxt := ""
 	if (txt != "" || (tfType = "empty" && wrapType != "")) {
-		PasteValue(XMLWrap(txt, tfType, wrapType))
+		switch wrapType {
+			case "selfTag", "variable", "attribute":
+				if (InStr(txt, "`n") && RegExMatch(txt, "[^\na-zA-Z0-9_/]") <= 0) {
+					for i, line in StrSplit(txt, "`n") {
+						if (i > 1) {
+							newTxt .= "`n"
+						}
+						newTxt .= XMLWrap(line, tfType, wrapType)
+					}
+				}
+				else {
+					newTxt := XMLWrap(txt, tfType, wrapType)
+				}
+				default:
+			newTxt := XMLWrap(txt, tfType, wrapType)
+		}
+		PasteValue(newTxt)
 	}
 	return
 }
@@ -104,8 +122,8 @@ XMLWrap(startText, tfType, wrapType) {
 	}
 	
 	if (wrapType = "selfTag" && startText != "") {
-		if (InStr(newText, "`r`n")) {
-			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+		if (InStr(newText, "`n")) {
+			newText := "`n`t" . StrReplace(newText, "`n", "`n`t") . "`n"
 		}
 		newText := "<" . startText . ">" . newText . "</" . startText . ">"
 	}
@@ -114,15 +132,15 @@ XMLWrap(startText, tfType, wrapType) {
 			newText := "<xsl:variable name=`"" . nameText . "`" select=`"" . newText . "`"/>"
 		}
 		else {
-			if (InStr(newText, "`r`n")) {
-				newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+			if (InStr(newText, "`n")) {
+				newText := "`n`t" . StrReplace(newText, "`n", "`n`t") . "`n"
 			}
 			newText := "<xsl:variable name=`"" . nameText . "`">" . newText . "</xsl:variable>"
 		}
 	}
 	else if (wrapType = "attribute") {
-		if (InStr(newText, "`r`n")) {
-			newText := "`r`n`t" . StrReplace(newText, "`r`n", "`r`n`t") . "`r`n"
+		if (InStr(newText, "`n")) {
+			newText := "`n`t" . StrReplace(newText, "`n", "`n`t") . "`n"
 		}
 		newText := "<xsl:attribute name=`"" . nameText . "`">" . newText . "</xsl:attribute>"
 	}
@@ -210,7 +228,7 @@ XMLTransform(startText, tfType) {
 		}
 
 		if (tfType = "choose") {
-			text := "<xsl:choose>`r`n`t<xsl:when test=`"" . (pathFromText || text) . testExp . "`">" . innerVal . "</xsl:when>`r`n`t<xsl:otherwise></xsl:otherwise>`r`n</xsl:choose>"
+			text := "<xsl:choose>`n`t<xsl:when test=`"" . (pathFromText || text) . testExp . "`">" . innerVal . "</xsl:when>`n`t<xsl:otherwise></xsl:otherwise>`n</xsl:choose>"
 		}
 		else if (tfType = "if") {
 			text := "<xsl:if test=`"" . (pathFromText || text) . testExp . "`">" . innerVal . "</xsl:if>"
@@ -230,9 +248,9 @@ XMLTransform(startText, tfType) {
 				forEachSel := sortBy
 				sortBy := "."
 			}
-			sortVal := XMLTransform(StrLen(sortBy) ? sortBy : ".", InStr(tfType, "SortNumeric") ? "sortNumeric" : "sort") . "`r`n`t"
+			sortVal := XMLTransform(StrLen(sortBy) ? sortBy : ".", InStr(tfType, "SortNumeric") ? "sortNumeric" : "sort") . "`n`t"
 		}
-		text := "<xsl:for-each select=`"" . (forEachSel || pathFromText || text) . "`">`r`n`t" . sortVal . "`r`n</xsl:for-each>"
+		text := "<xsl:for-each select=`"" . (forEachSel || pathFromText || text) . "`">`n`t" . sortVal . "`n</xsl:for-each>"
 	}
 	else if (tfType = "sort") {
 		text := "<xsl:sort select=`"" . text . "`" order=`"ascending`" data-type=`"text`"/>"

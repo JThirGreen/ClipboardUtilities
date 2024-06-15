@@ -221,9 +221,10 @@ class ConfigurationFile {
 	Save() {
 		if (this._progressState = 'error')
 			return
+		jsonStr := JSON.stringify(this._configMap)
 		if (FileExist(this.FileName))
 			FileMove(this.FileName, this.BackupFileName, true)
-		FileAppend(JSON.stringify(this._configMap), this.FileName)
+		FileAppend(jsonStr, this.FileName)
 		ConfigurationFile._configVersion++
 		this._configVersion := ConfigurationFile._configVersion
 	}

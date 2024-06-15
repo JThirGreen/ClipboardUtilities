@@ -415,6 +415,7 @@ class ClipArray {
 
 		newFileNameList := []
 		newFileList := toFileListNew(this._clips.Array)
+		newJson := JSON.stringify({category:this.Category, files: newFileList})
 
 		; If JSON already exists, then delete any *.clip that has been removed from it
 		if (FileExist(this.RootFile)) {
@@ -431,7 +432,7 @@ class ClipArray {
 				MsgBox("Unable to find `"files`" array in `"" . this.FileName . ".json`"")
 			}
 		}
-		FileAppend(JSON.stringify({category:this.Category, files: newFileList}), this.RootFile)
+		FileAppend(newJson, this.RootFile)
 
 		toFileListNew(fromArray) {
 			fileList := []

@@ -20,27 +20,27 @@ class JSON {
          * String of characters to be considered "whitespace"
          * @type {String}
          */
-        whitespace := " `t`r`n"
+        whitespace := " `t`r`n",
         /**
          * Flag that is unset when invalid scenario is found
          * @type {true|false}
         */
-        isValid := true
+        isValid := true,
         /**
          * Flag that is set when end of JSON string is found
          * @type {true|false}
          */
-        isComplete := false
-        invalidReason := ""
+        isComplete := false,
+        invalidReason := "",
         /** object, array, value, string, number, whitespace, true/false */
-        rootObject := Map()
+        rootObject := Map(),
         /**
          * Array to track actions while parsing
          * @type {Array<Map>}
          */
-        parserActions := []
+        parserActions := [],
 
-        addNextAction("", rootObject)
+        addNextAction("", rootObject),
         /**
          * Object that holds information of current action
          * 
@@ -53,8 +53,8 @@ class JSON {
          * "returnFrom" - most recently completed child action
          * @type {Map}
          */
-        action := getAction()
-        skipToIndex := 0
+        action := getAction(),
+        skipToIndex := 0,
         jsonCharArray := StrSplit(jsonStr)
         Loop jsonCharArray.Length {
             loopField := jsonCharArray[A_Index]
@@ -96,12 +96,12 @@ class JSON {
                         evalStringMode(loopField)
                     }
                     else {
-                        RegExMatch(jsonStr, "[^\\](\\\\)*(?P<EndQuote>`")", &endSubStr, A_Index || 1)
-                        endStrIndex := endSubStr.Pos["EndQuote"]
-                        fullStr := SubStr(jsonStr, A_Index, endStrIndex - A_Index)
-                        splitStr := StrSplit(fullStr, "\")
-                        outerIndex := A_Index
-                        actBuffer := action.Get("buffer")
+                        RegExMatch(jsonStr, "[^\\](\\\\)*(?P<EndQuote>`")", &endSubStr, A_Index || 1),
+                        endStrIndex := endSubStr.Pos["EndQuote"],
+                        fullStr := SubStr(jsonStr, A_Index, endStrIndex - A_Index),
+                        splitStr := StrSplit(fullStr, "\"),
+                        outerIndex := A_Index,
+                        actBuffer := action.Get("buffer"),
                         escaping := false
                         for splitIndex, strFragment in splitStr {
                             newFragment := strFragment

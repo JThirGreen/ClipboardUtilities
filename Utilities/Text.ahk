@@ -530,7 +530,7 @@ EndsWith(haystack, needle, caseSense := true) {
 }
 
 /**
- * Removes carriage returns (`r) and replaces them with new lines (`n)
+ * Removes carriage returns (\`r) and replaces them with new lines (\`n)
  * @param {String} str String to clean
  * @param {String} trimmed If set to "true", then also trim new lines from the result
  * @returns {String} 
