@@ -543,9 +543,6 @@ CleanNewLines(str, trimmed := false) {
 TrimIfNotContains(str, trimStr) {
 	trimCheckRegex := trimStr
 	trimCheckRegex := StrReplace(trimCheckRegex, "\", "\\")
-	trimCheckRegex := StrReplace(trimCheckRegex, "`t", "\t")
-	trimCheckRegex := StrReplace(trimCheckRegex, "`r", "\r")
-	trimCheckRegex := StrReplace(trimCheckRegex, "`n", "\n")
 	regexCheck := "s)^.+(?<!(" . trimCheckRegex . "))(" . trimCheckRegex . ")(?!(" . trimCheckRegex . "|$))"
 	if (!RegExMatch(str, regexCheck, &matchInfo)) {
 		strLength := StrLen(str)

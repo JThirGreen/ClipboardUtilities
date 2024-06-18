@@ -295,8 +295,8 @@ Class ClipboardManager {
 	 * 
 	 * false: Hide tooltip if currently shown
 	 */
-	Tooltip(show := true) {
-		this.CbArray.Tooltip(show, ["Clip history selected: " . String(this.SelectedCbArrayName)])
+	Tooltip(show := true, delay?) {
+		this.CbArray.Tooltip(show, ["Clip history selected: " . String(this.SelectedCbArrayName)], delay ?? unset)
 	}
 
 	/**

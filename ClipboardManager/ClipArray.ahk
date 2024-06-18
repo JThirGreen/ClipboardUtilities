@@ -184,7 +184,7 @@ class ClipArray {
 				
 				if (Type(this[clipIdx]) = "String")
 					MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
-				tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].name) : this[clipIdx].name) . "`r`n"
+				tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].title) : this[clipIdx].title) . "`r`n"
 			}
 
 			if (listBounds.End < listBounds.FullLength)
@@ -433,34 +433,32 @@ class ClipArray {
 			}
 		}
 		FileAppend(newJson, this.RootFile)
+		return
 
 		toFileListNew(fromArray) {
 			fileList := []
 			for item in fromArray {
 				if (item is Array) {
-					while (item.Length = 1 && item[1] is Array)
+					while (item.Length = 1 && item[1] is Array) {
 						item := item[1]
+					}
 					childArray := toFileListNew(item)
-					if (childArray.Length > 0)
+					if (childArray.Length > 0) {
 						fileList.Push(toFileListNew(item))
+					}
 				}
 				else if (item is CustomClip) {
 					/** @type {CustomClip} */
-					clip := item
+					clip := item,
 					fileName := ""
-					if (StrLen(clip.SavedAs) > 0) {
-						fileName := clip.SavedAs
+					if (StrLen(clip.name) > 0) {
+						fileName := clip.name
 					}
-					else if (clip.type = "binary" || clip.clip != "") {
+					else {
 						baseClipName := this.FileName . "_" . clip.createdOn
-						fileName := baseClipName . ".clip"
-						sameNameIndex := 0
-						while (FileExist(this.FolderPath . "\" . fileName)) {
-							sameNameIndex++
-							fileName := baseClipName . "_" . String(sameNameIndex) . ".clip"
-						}
-						FileAppend(clip.content, this.FolderPath . "\" . fileName)
-						clip.SavedAs := fileName
+						fileName := nextValidFileName(baseClipName, "clip")
+						clip.name := fileName
+						clip.Save(this.FolderPath)
 					}
 					newFileNameList.Push(fileName)
 					fileList.Push({name: fileName, content: clip})
@@ -472,15 +470,35 @@ class ClipArray {
 			return fileList
 		}
 
+		/**
+		 * Append index to file name until existing file is not found with that name
+		 * @param {String} baseName Starting file name excluding extension
+		 * @param {String} extension File extension to be used
+		 * @returns {String}
+		 */
+		nextValidFileName(baseName, extension) {
+			fileName := baseName . "." . extension, sameNameIndex := 0
+			while (FileExist(this.FolderPath . "\" . fileName)) {
+				sameNameIndex++
+				fileName := baseName . "_" . String(sameNameIndex) . "." . extension
+			}
+			return fileName
+		}
+
 		cleanFileListOld(fromArray) {
 			for oldClipFile in fromArray {
 				if (oldClipFile is Array) {
 					cleanFileListOld(oldClipFile)
 				}
 				else {
-					if (StrLen(oldClipFile["name"]) > 0 && FileExist(this.FolderPath . "\" . oldClipFile["name"])) {
+					oldFileFullName := this.FolderPath . "\" . oldClipFile["name"]
+					if (StrLen(oldClipFile["name"]) > 0 && FileExist(oldFileFullName)) {
 						if (!InArray(newFileNameList, oldClipFile["name"])) {
-							FileDelete(this.FolderPath . "\" . oldClipFile["name"])
+							FileDelete(oldFileFullName)
+							oldTextFileFullName := StrReplace(oldFileFullName, ".clip", ".txt")
+							if (FileExist(oldTextFileFullName)) {
+								FileDelete(oldTextFileFullName)
+							}
 						}
 					}
 				}
@@ -527,7 +545,7 @@ class ClipArray {
 				else {
 					clip := CustomClip(clipFile["content"], "json")
 					if (StrLen(clipFile["name"]) > 0) {
-						clip.SavedAs := clipFile["name"]
+						clip.name := clipFile["name"]
 						clip.SavedAt := this.FolderPath
 					}
 					clipsArray.Push(clip)
@@ -662,13 +680,13 @@ class ClipArray {
 	 * 
 	 * false: Hide tooltip if currently shown
 	 */
-	Tooltip(show := true, txtArray := []) {
+	Tooltip(show := true, txtArray := [], delay := 5000) {
 		if (show) {
 			if (!this.Length)
 				this.AppendClipboard()
 
 			txtArray.Push(this.TooltipText)
-			AddToolTip(txtArray, 5000)
+			AddToolTip(txtArray, delay)
 		}
 		else {
 			RemoveToolTip()

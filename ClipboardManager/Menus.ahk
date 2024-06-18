@@ -58,7 +58,7 @@ BuildCbArrayMenu(cbArray) {
 	Loop clipCount {
 		funcInstance := ClipMenuAction.Bind(A_Index)
 		menuTitle := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
-		menuTitle .= ": " . StrReplace(cbArray[A_Index].name, "&", "&&") . Chr(0xA0)
+		menuTitle .= ": " . StrReplace(cbArray[A_Index].title, "&", "&&") . Chr(0xA0)
 		
 		; Add limited range to main clip menu based on "MenuItemsCount" config
 		if (listLimitBounds.Start <= A_Index && A_Index <= listLimitBounds.End) {

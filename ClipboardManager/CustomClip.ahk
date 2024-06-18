@@ -16,19 +16,19 @@ class CustomClip {
 	 * Clip content
 	 * @type {String|ClipboardAll}
 	 */
-	value := ""
+	_value := unset
 
 	/**
 	 * Raw clip content
 	 * @type {ClipboardAll}
 	 */
-	_clip := ""
+	_clip := unset
 
 	/**
-	 * Name generated based on content
+	 * Title generated based on content
 	 * @type {String}
 	 */
-	name := ""
+	_title := unset
 
 	/**
 	 * Record of when object was created
@@ -37,10 +37,10 @@ class CustomClip {
 	createdOn := A_Now
 
 	/**
-	 * File name of clip if it has been saved to a file 
+	 * Name of clip and used for if it has been saved to a file 
 	 * @type {String}
 	 */
-	SavedAs := ""
+	name := ""
 
 	/**
 	 * File path of clip if it has been saved to a file 
@@ -64,44 +64,68 @@ class CustomClip {
 		this._clip := clip
 		this.TfMode := tfMode
 		if (datatype = "json") {
-			jsonObj := (Type(content) = "String") ? JSON.parse(content) : content
-			this._type := jsonObj["_type"]
-			newValue := jsonObj["value"]
-			if (Type(newValue) = "String") {
-				this.value := newValue
-			}
-			else {
-				this.value := newValue is Buffer ? ClipboardAll(newValue) : JSON.stringify(newValue)
-			}
-			this.createdOn := jsonObj["createdOn"]
+			this.fromJSON(content)
 		}
 		else {
 			this._type := datatype
 			this.value := content
 		}
-		/** @type {TextTrimmer} */
-		clipMenuText := TextTrimmer((this._type = "text") ? CleanNewLines(this.text) : (this._type . " data"))
-		this.name := clipMenuText.Value
 	}
 
 	/**
 	 * @type {String}
 	 */
-	filePath => ((StrLen(this.SavedAt) > 0) ? (this.SavedAt . "\") : "") . this.SavedAs
+	valueFilePath => this.filePath . StrReplace(this.name, ".clip", ".txt")
 
 	/**
+	 * Clip content
+	 * @type {String|ClipboardAll}
+	 */
+	value {
+		get {
+			if (!this.HasOwnProp("_value") && StrLen(this.valueFilePath) > 0 && FileExist(this.valueFilePath)) {
+				this._value := FileRead(this.valueFilePath)
+			}
+			return this._value
+		}
+		set => this._value := value
+	}
+
+	/**
+	 * Title generated based on content
+	 * @type {String}
+	 */
+	title {
+		get {
+			if (!this.HasOwnProp("_title")) {
+				/** @type {TextTrimmer} */
+				clipMenuText := TextTrimmer((this._type = "text") ? CleanNewLines(this.text) : (this._type . " data"))
+				this._title := clipMenuText.Value
+			}
+			return this._title
+		}
+	}
+
+	/**
+	 * @type {String}
+	 */
+	clipFilePath => this.filePath . this.name
+
+	/**
+	 * Raw clip content
 	 * @type {ClipboardAll}
 	 */
 	clip {
 		get {
-			if (this._clip = "" && StrLen(this.SavedAs) > 0 && FileExist(this.filePath)) {
-				this._clip := ClipboardAll(FileRead(this.filePath, "RAW"))
+			if (!this.HasOwnProp("_clip") && StrLen(this.clipFilePath) > 0 && FileExist(this.clipFilePath)) {
+				this._clip := ClipboardAll(FileRead(this.clipFilePath, "RAW"))
 			}
 			return this._clip
 		}
 	}
 
 	/**
+	 * The content of this clip as it would be pasted
 	 * @type {String|ClipboardAll}
 	 */
 	content {
@@ -119,6 +143,7 @@ class CustomClip {
 	}
 
 	/**
+	 * Type of content in this clip
 	 * @type {String}
 	 */
 	type {
@@ -149,9 +174,14 @@ class CustomClip {
 			return ""
 		}
 	}
+
+	/**
+	 * @type {String}
+	 */
+	filePath => (StrLen(this.name) > 0 && StrLen(this.SavedAt) > 0) ? (this.SavedAt . "\") : ""
 	
 	/**
-	 * Return value if it is text, otherwise return generated name
+	 * Return value if it is text, otherwise return generated title
 	 * @param {true|false} applyTfMode
 	 * @returns {String}
 	 */
@@ -160,7 +190,7 @@ class CustomClip {
 			return applyTfMode ? this.text : this.value
 		}
 		else {
-			return this.name
+			return this.title
 		}
 	}
 	
@@ -178,7 +208,48 @@ class CustomClip {
 		SetClipboardValue(this.content, this.type)
 	}
 
+	/**
+	 * Save clip contents to disk
+	 * 
+	 * If large text content exists, then save to seperate file
+	 * @param {String} savePath File path to save clip contents to
+	 */
+	Save(savePath := this.SavedAt) {
+		this.SavedAt := savePath
+		if (StrLen(this.clipFilePath) > 0) {
+			FileAppend(this.content, this.clipFilePath)
+		}
+		if (StrLen(this.valueFilePath) > 0) {
+			if (this.value is String && StrLen(this.value) > 10000)
+			FileAppend(this.value, this.valueFilePath)
+		}
+	}
+
+	/**
+	 * Optimized object format for converting to JSON string
+	 * @returns {Object}
+	 */
 	toJSON() {
-		return {_type:this._type, value:this.value, createdOn:this.createdOn}
+		if (FileExist(this.valueFilePath)) {
+			return {_type:this._type, file:this.valueFilePath, createdOn:this.createdOn}
+		}
+		else {
+			return {_type:this._type, value:this.value, createdOn:this.createdOn}
+		}
+	}
+
+	fromJSON(jsonValue) {
+		jsonObj := (Type(jsonValue) = "String") ? JSON.parse(jsonValue) : jsonValue
+		this._type := jsonObj["_type"]
+		if (jsonObj.Has("value")) {
+			newValue := jsonObj["value"]
+			if (Type(newValue) = "String") {
+				this.value := newValue
+			}
+			else {
+				this.value := newValue is Buffer ? ClipboardAll(newValue) : JSON.stringify(newValue)
+			}
+		}
+		this.createdOn := jsonObj["createdOn"]
 	}
 }

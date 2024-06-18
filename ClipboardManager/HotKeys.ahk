@@ -49,14 +49,18 @@ CoordMode("Menu")
 			CbManager.CbArrayStatus := "start"
 			CbManager.LastActionInitOn := A_TickCount
 			CbManagerAction()
+		default:
+			CbManager.LastActionOn := A_TickCount
 	}
-	SetTimer(CheckReleased, 50)
+
+	SetTimer(CheckReleased, -50)
+	return
 
 	CheckReleased() {
 		if (!GetKeyState("Ctrl", "P") || !GetKeyState("Shift", "P")) {
+			SetTimer(, 0)
 			CbManager.CbArrayStatus := "end"
 			CbManagerAction()
-			SetTimer(, 0)
 		}
 	}
 }
@@ -303,7 +307,7 @@ CbManagerAction(forceEnd := false) {
 		CbManager.Tooltip(false)
 		switch CbManager.CbArrayStatus {
 			case "start":
-				CbManager.Tooltip()
+				CbManager.Tooltip(true, 0)
 			case "ready":
 			case "newSelected":
 			case "pasteCurrent":
@@ -313,29 +317,29 @@ CbManagerAction(forceEnd := false) {
 				CbManager.Prev()
 				CbManager.PasteClip()
 				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end")
+				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "pasteNext":
 				CbManager.DisableCbChange()
 				CbManager.Next()
 				CbManager.PasteClip()
 				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end")
+				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "removeCurrent":
 				CbManager.DisableCbChange()
 				CbManager.RemoveSelected()
 				CbManager.ReloadCbArrayMenu := true
 				AddToolTip(ToolTipInfo(CbManager.CbArrayStatus, 3))
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end")
+				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "removePrev":
 				CbManager.DisableCbChange()
 				CbManager.RemoveSelected(-1)
 				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end")
+				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "removeNext":
 				CbManager.DisableCbChange()
 				CbManager.RemoveSelected(1)
 				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end")
+				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "end":
 				CbManager.EnableCbChange()
 			default:
@@ -361,8 +365,9 @@ CbManagerAction(forceEnd := false) {
 			SetTimer(EndAction, -500)
 		}
 	}
-	if (CbManager.CbArrayStatus != "end")
+	if (CbManager.CbArrayStatus != "end") {
 		SetTimer(EndAction, -10000) ; If any state other than "end" lasts for too long, assume it is stuck and trigger EndAction()
+	}
 }
 
 SelectCbArray(name) {
@@ -384,7 +389,7 @@ CbArrayScroll(increment) {
 	global CbManager
 	CbManager.ShiftSelect(increment, true)
 	CbManager.ReloadCbArrayMenu := true
-	CbManager.Tooltip()
+	CbManager.Tooltip(true, 0)
 	SetTimer(CbArrayScrollEnd, -100)
 }
 
