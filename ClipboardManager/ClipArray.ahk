@@ -255,8 +255,9 @@ class ClipArray {
 	 */
 	Add(clip, soft := false) {
 		this.Push(clip)
-		if (this.TotalLength > this.maxClips)
+		if (this.TotalLength > this.maxClips) {
 			this.RemoveAt(1, this.TotalLength - this.maxClips, soft)
+		}
 		this.Select(this.TotalLength, soft)
 		return clip
 	}
@@ -291,8 +292,9 @@ class ClipArray {
 		}
 		else {
 			clip := ClipboardAll()
-			if (clip.Size > 0)
+			if (clip.Size > 0) {
 				this.Add(CustomClip(clip, "binary"), true)
+			}
 		}
 	}
 
@@ -737,7 +739,7 @@ class ClipArray {
 		if (transformation = "Trim") {
 			while (clips.Length > 0) {
 				lastClip := clips[-1]
-				poppedClip := (((lastClip is Array) && (lastClip.Length = 0)) || ((lastClip is CustomClip) && (StrLen(lastClip.text) = 0)))
+				poppedClip := (((lastClip is Array) && (lastClip.Length = 0)) || ((lastClip is CustomClip) && (lastClip.IsEmpty())))
 					? clips.Pop()
 					: ""
 

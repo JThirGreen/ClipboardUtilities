@@ -32,11 +32,13 @@ return
 ;    function definitions     |
 ;-----------------------------+
 MainInit() {
-	global updateHandler
 	InitCbManager()
 	TrayMenuInit()
 	Suspend(false)
-	updateHandler := Updater()
+	Updater()
+
+	; Check for updates every 2 hours
+	SetTimer((*) => Updater.CheckForUpdate(), 2*60*60*1000)
 }
 
 TrayMenuInit() {

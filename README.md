@@ -100,25 +100,37 @@ Wrap selected text based on which supported wrapper key is pressed
 | `{` / `}` | {_Text Content_}
 | `[` / `]` | [_Text Content_]
 
+If a closing wrapper key `)` `}` `]` is pressed, then a named wrapping is attempted specifically for the triggered wrapper.
+
+If the clipboard contains content wrapped by the triggered wrapper that is blank (or comma seperated with the first value blank), then the selected text is inserted in replacing that blank value.
+
+| Example     | "_Text Content_"
+|-------------|-----------------
+| name()      | name("_Text Content_")
+| name[]      | name["_Text Content_"]
+| name(, ...) | name("_Text Content_", ...)
+
+If a named wrapping fails, then it falls back to the standard wrapping.
+
 ## XML Transformations
 ### Hot Keys
 - `Alt` + `Shift` + `<`  
-Escapes `<` and `>` to `&lt;` and `&gt;` respectively in selected text.
+Escapes `<` and `>` to `&lt;` and `&gt;` respectively in the selected text.
 
 - `Alt` + `Shift` + `>`  
-Unescapes `&lt;` and `&gt;` to `<` and `>` respectively in selected text.
+Unescapes `&lt;` and `&gt;` to `<` and `>` respectively in the selected text.
 
 - `Alt` + `Shift` + `E`  
-Escapes `<` `>` `'` `"` `&` to `&lt;` `&gt;` `&apos;` `&quot;` `&amp;` respectively in selected text.
+Escapes `<` `>` `'` `"` `&` to `&lt;` `&gt;` `&apos;` `&quot;` `&amp;` respectively in the selected text.
 
 - `Alt` + `Shift` + `D`  
-Unescapes `&lt;` `&gt;` `&apos;` `&quot;` `&amp;` to `<` `>` `'` `"` `&` respectively in selected text.
+Unescapes `&lt;` `&gt;` `&apos;` `&quot;` `&amp;` to `<` `>` `'` `"` `&` respectively in the selected text.
 
 - `Alt` + `Shift` + `Delete`  
 Wraps selected text in XML comment `<!-- Text Content -->`.
 
 - `Alt` + `Shift` + `Insert`  
-Unwraps first found XML comment in selected text.
+Unwraps first found XML comment in the selected text.
 
 ## Configurations
 Various configurations are available and are stored in an auto-generated file `_data\_configs.json`.

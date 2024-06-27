@@ -37,7 +37,7 @@ class ConfigurationManager {
 			this.LoadGuiXml()
 
 		this._gui.Title := "Clipboard Utility Configurations"
-		
+
 		for config in this._guiXml.selectNodes("Configs/Config") {
 			configName := config.getAttribute("Name")
 			properties := config.selectNodes("Property")
@@ -54,10 +54,10 @@ class ConfigurationManager {
 			}
 		}
 
-		
+
 		;reloadBtn := this._gui.Add("Button", "y+16 xm Section Default w80", "Reload Script")
 		;reloadBtn.OnEvent("Click", reload_clicked)
-;
+
 		;width := 0
 		;height := 0
 		;this._gui.Show("Hide")

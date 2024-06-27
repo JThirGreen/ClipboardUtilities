@@ -61,13 +61,13 @@ class CustomClip {
 	 * @param {String} tfMode Optional transformation mode to use
 	 */
 	__New(content, datatype := "text", clip := "", tfMode := "") {
-		this._clip := clip
+		this._clip := clip,
 		this.TfMode := tfMode
 		if (datatype = "json") {
 			this.fromJSON(content)
 		}
 		else {
-			this._type := datatype
+			this._type := datatype,
 			this.value := content
 		}
 	}
@@ -176,9 +176,23 @@ class CustomClip {
 	}
 
 	/**
+	 * Size of clip in either bytes or character count based on type
+	 * @type {String}
+	 */
+	size => (this.value is Buffer) ? (this.value.Size) : StrLen(this.value)
+
+	/**
 	 * @type {String}
 	 */
 	filePath => (StrLen(this.name) > 0 && StrLen(this.SavedAt) > 0) ? (this.SavedAt . "\") : ""
+
+	/**
+	 * Checks if contained clip is empty
+	 * @returns {true|false}
+	 */
+	IsEmpty() {
+		return !this.size
+	}
 	
 	/**
 	 * Return value if it is text, otherwise return generated title

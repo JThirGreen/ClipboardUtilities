@@ -117,29 +117,55 @@ global cbCaseIsScrolling := false
 	}
 #HotIf
 
+global wrapperTriggerStart := 0
 ; Alt + {Wrapper Character}
 !"::
 {
-	PasteValue(WrapText(GetClipboardValue("select"),Chr(34)))
+	openerAction(Chr(0x22))
 }
 !'::
 {
-	PasteValue(WrapText(GetClipboardValue("select"),"'"))
+	openerAction("'")
 }
 !(::
+{
+	openerAction("(")
+}
 !)::
 {
-	PasteValue(WrapText(GetClipboardValue("select"),"("))
+	closerAction(")")
 }
 ![::
+{
+	openerAction("[")
+}
 !]::
 {
-	PasteValue(WrapText(GetClipboardValue("select"),"["))
+	closerAction("]")
 }
 !{::
+{
+	openerAction("{")
+}
 !}::
 {
-	PasteValue(WrapText(GetClipboardValue("select"),"{"))
+	closerAction("}")
+}
+
+/**
+ * Perform action when hotkey is for opening part of wrapper
+ * @param {String} closer
+ */
+openerAction(opener) {
+	PasteValue(WrapText(GetClipboardValue("select"), opener))
+}
+
+/**
+ * Perform action when hotkey is for closing part of wrapper
+ * @param {String} closer
+ */
+closerAction(closer) {
+	PasteValue(WrapTextNamed(GetClipboardValue("select"), GetClipboardValue("paste"), closer))
 }
 
 ;-----------------------------+
@@ -400,6 +426,36 @@ IncrementNumericString(txt, incrementVal) {
 	return newTxt
 }
 
+
+/**
+ * Get opener and closer to use for a given type of wrapping
+ * @param {String} wrapMode Type of wrapping to apply
+ * @param {VarRef<String>} opener Character or string to start wrapping with
+ * @param {VarRef<String>} closer Character or string to end wrapping with
+ */
+GetWrappersFromMode(wrapMode, &opener, &closer) {
+	switch wrapMode {
+		case Chr(34):
+			opener := Chr(34)
+			closer := Chr(34)
+		case "'":
+			opener := "'"
+			closer := "'"
+		case "(", ")":
+			opener := "("
+			closer := ")"
+		case "{", "}":
+			opener := "{"
+			closer := "}"
+		case "[", "]":
+			opener := "["
+			closer := "]"
+		default:
+			opener := ""
+			closer := ""
+	}
+}
+
 /**
  * Wrap provided string based on wrapping mode
  * 
@@ -409,28 +465,13 @@ IncrementNumericString(txt, incrementVal) {
  * @returns {String} Wrapped text
  */
 WrapText(txt, wrapMode) {
-	opener := ""
-	closer := ""
-	
-	switch wrapMode {
-		case Chr(34):
-			return WrapTextSimple(txt, Chr(34))
-		case "'":
-			return WrapTextSimple(txt, "'")
-		case "(":
-			opener := "("
-			closer := ")"
-		case "{":
-			opener := "{"
-			closer := "}"
-		case "[":
-			opener := "["
-			closer := "]"
-	}
-	
-	return InStr(txt, "`r`n") ?
-		WrapTextMultiline(txt, opener, closer) :
-		WrapTextSimple(txt, opener, closer)
+	GetWrappersFromMode(wrapMode, &opener, &closer)
+
+	simpleMode := (opener = closer)
+
+	return (simpleMode || !InStr(txt, "`r`n")) ?
+		WrapTextSimple(txt, opener, closer) :
+		WrapTextMultiline(txt, opener, closer)
 }
 
 /**
@@ -505,6 +546,25 @@ WrapTextMultiline(txt, opener, closer) {
 	}
 	newTxt := "`r`n" . minLineSpace . newTxt . "`r`n"
 	return preText . opener . newTxt . minLineSpace . closer
+}
+
+/**
+ * Wrap provided string based on wrapping mode and whether that mode matches provided wrap name
+ * @param {String} txt Text to add wrapping to
+ * @param {String} wrapName Name to parse based on wrapMode
+ * @param {String} wrapMode Type of wrapping to apply
+ * @returns {String} Wrapped text
+ */
+WrapTextNamed(txt, wrapName, wrapMode) {
+	GetWrappersFromMode(wrapMode, &opener, &closer)
+
+	valueToPaste := ""
+	if (RegExMatch(wrapName, "^(?P<opener>\s*\S+\" . opener . ")(?P<closer>(,[^)]*)*\" . closer . "\s*)$", &wrapFuncMatch)) {
+		return wrapFuncMatch["opener"] . txt . wrapFuncMatch["closer"]
+	}
+	else {
+		return WrapText(txt, wrapMode)
+	}
 }
 
 /**

@@ -94,10 +94,12 @@ class TextTrimmer {
 			return
 		}
 
-		if (IsSet(trimWidth))
+		if (IsSet(trimWidth)) {
 			this.trimTextWidth := trimWidth
-		if (IsSet(middleTrim))
+		}
+		if (IsSet(middleTrim)) {
 			this.trimMode := middleTrim ? "" : "end"
+		}
 		
 		this.Load(val)
 	}
@@ -111,13 +113,13 @@ class TextTrimmer {
 		/** @type {Integer} */
 		charCount := 0
 		/** @type {String} */
-		currChar := "", prevChar := ""
-		this.textLength := StrLen(str)
-		trimIndex := (this.trimTextWidth // 2) - 1
-		loopSkipToIndex := 0
+		currChar := "", prevChar := "",
+		this.textLength := StrLen(str),
+		trimIndex := (this.trimTextWidth // 2) - 1,
+		loopSkipToIndex := 0,
 
 		this.lineCount := (this.textLength > 0) ? 1 : 0
-		
+
 		Loop Parse, str
 		{
 			if (A_LoopField = "`n") {
@@ -140,19 +142,21 @@ class TextTrimmer {
 				}
 				currChar := TextTrimmer.TranslateCharacter(A_LoopField)
 
-				if (charCount <= this.trimTextWidth)
+				if (charCount <= this.trimTextWidth) {
 					this.preTrimComponents.Push(currChar)
-				else if (loopSkipToIndex > 0)
+				}
+				else if (loopSkipToIndex > 0) {
 					this.postTrimComponents.Push(currChar)
+				}
 
 				charCount++
 			}
 			if (loopSkipToIndex = 0 && charCount > this.trimTextWidth) {
 				if (this.trimMode = "") {
 					this.trimMode := ((this.textLength - A_Index) > trimIndex) ? "middle" : "end"
-					if (this.trimMode = "middle") {
-						loopSkipToIndex := (this.textLength + trimIndex - this.trimTextWidth)
-					}
+				}
+				if (this.trimMode = "middle") {
+					loopSkipToIndex := (this.textLength + trimIndex - this.trimTextWidth)
 				}
 				if (this.trimMode = "end") {
 					break
@@ -160,8 +164,9 @@ class TextTrimmer {
 			}
 			prevChar := A_LoopField
 		}
-		if (charCount <= this.trimTextWidth)
+		if (charCount <= this.trimTextWidth) {
 			this.trimMode := ""
+		}
 	}
 
 	/**
