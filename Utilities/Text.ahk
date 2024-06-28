@@ -559,12 +559,23 @@ WrapTextNamed(txt, wrapName, wrapMode) {
 	GetWrappersFromMode(wrapMode, &opener, &closer)
 
 	valueToPaste := ""
-	if (RegExMatch(wrapName, "^(?P<opener>\s*\S+\" . opener . ")(?P<closer>(,[^)]*)*\" . closer . "\s*)$", &wrapFuncMatch)) {
-		return wrapFuncMatch["opener"] . txt . wrapFuncMatch["closer"]
+	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<opener>\S.*\" . opener . ")\s*(?P<closer>(,[^" . closer . "]*)*\" . closer . "(.+\S)?)(?P<postspace>\s*)$", &wrapFuncMatch)) {
+		wrappedTxt := ""
+		/** @type {Array} */
+		txtLines := StrSplit(txt, "`n", "`r")
+		loop txtLines.Length {
+			txtLine := txtLines[A_Index]
+			if (A_Index > 1) {
+				wrappedTxt .= "`r`n"
+			}
+			if (StrLen(txtLine) > 0) {
+				RegExMatch(txtLine, "^(?P<prespace>\s*)(?P<text>\S(.*\S)*)(?P<postspace>\s*)$", &txtLineMatch)
+				wrappedTxt .= txtLineMatch["prespace"] . wrapFuncMatch["opener"] . txtLineMatch["text"] . wrapFuncMatch["closer"] . txtLineMatch["postspace"]
+			}
+		}
+		return wrappedTxt
 	}
-	else {
-		return WrapText(txt, wrapMode)
-	}
+	return WrapText(txt, wrapMode)
 }
 
 /**

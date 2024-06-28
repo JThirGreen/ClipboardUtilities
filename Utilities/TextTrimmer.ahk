@@ -140,7 +140,7 @@ class TextTrimmer {
 				if (charCount = 0 && this.leadingSpacesCount > 0) {
 					this.preTrimComponents := StrSplit(TextTrimmer.TranslateSpaces(this.leadingSpacesCount))
 				}
-				currChar := TextTrimmer.TranslateCharacter(A_LoopField)
+				currChar := TextTrimmer.TranslateCharacters(A_LoopField)
 
 				if (charCount <= this.trimTextWidth) {
 					this.preTrimComponents.Push(currChar)
@@ -199,17 +199,28 @@ class TextTrimmer {
 	 * @param {String} char
 	 * @returns {String}
 	 */
-	static TranslateCharacter(char) {
-		switch (char) {
-			case "`r":
-			case "`n":
-				; Chr(0x21B5) = return symbol (⏎)
-				return Chr(0x23CE)
-			case "`t":
-				; Chr(0x2192) = rightwards arrow (→)
-				return Chr(0x2192)
-			default:
-				return char
+	static TranslateCharacters(char) {
+		if (StrLen(char) = 1) {
+			switch (char) {
+				case "`r":
+				case "`n":
+					; Chr(0x21B5) = return symbol (⏎)
+					return Chr(0x23CE)
+				case "`t":
+					; Chr(0x2192) = rightwards arrow (→)
+					return Chr(0x2192)
+				default:
+					return char
+			}
+		}
+		; If string was provided instead of a single character, use StrReplace() instead
+		else {
+			translated := StrReplace(char, "`r", ""),
+			; Chr(0x21B5) = return symbol (⏎)
+			translated := StrReplace(translated, "`n", Chr(0x23CE)),
+			; Chr(0x2192) = rightwards arrow (→)
+			translated := StrReplace(translated, "`t", Chr(0x2192))
+			return translated
 		}
 	}
 

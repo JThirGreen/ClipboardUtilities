@@ -7,6 +7,7 @@ A_ScriptName := "Clipboard Utilities"
 ;@Ahk2Exe-SetName %U_Name%
 ;@Ahk2Exe-SetDescription %U_Name%
 ;@Ahk2Exe-SetCompanyName JThirGreen
+;@Ahk2Exe-SetCopyright Copyright © 2024 JThirGreen
 ;@Ahk2Exe-SetMainIcon Images\tray.ico
 ;@Ahk2Exe-AddResource Images\tray.ico, 160
 ;@Ahk2Exe-AddResource Images\suspend.ico, 206
