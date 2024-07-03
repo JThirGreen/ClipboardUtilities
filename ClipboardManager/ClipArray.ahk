@@ -526,10 +526,12 @@ class ClipArray {
 			this.Category := clipData.Has("category") ? clipData["category"] : ""
 			/** @type {Array} */
 			fileList := clipData["files"]
-			if (fileList is Array)
+			if (fileList is Array) {
 				this.LoadArray(readArray(fileList))
-			else
+			}
+			else {
 				MsgBox("Unable to find `"files`" array in `"" . this.FileName . ".json`"")
+			}
 
 			this.IsLoaded := true
 		}

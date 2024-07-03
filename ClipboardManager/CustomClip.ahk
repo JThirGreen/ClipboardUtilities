@@ -60,8 +60,10 @@ class CustomClip {
 	 * @param {ClipboardAll} clip Optional raw clip content
 	 * @param {String} tfMode Optional transformation mode to use
 	 */
-	__New(content, datatype := "text", clip := "", tfMode := "") {
-		this._clip := clip,
+	__New(content, datatype := "text", clip?, tfMode := "") {
+		if (IsSet(clip)) {
+			this._clip := clip
+		}
 		this.TfMode := tfMode
 		if (datatype = "json") {
 			this.fromJSON(content)
@@ -83,8 +85,13 @@ class CustomClip {
 	 */
 	value {
 		get {
-			if (!this.HasOwnProp("_value") && StrLen(this.valueFilePath) > 0 && FileExist(this.valueFilePath)) {
-				this._value := FileRead(this.valueFilePath)
+			if (!this.HasOwnProp("_value")) {
+				if (this._type = "text" && StrLen(this.valueFilePath) > 0 && FileExist(this.valueFilePath)) {
+					this._value := FileRead(this.valueFilePath)
+				}
+				else if (this._type = "binary") {
+					this._value := this.clip
+				}
 			}
 			return this._value
 		}
@@ -99,7 +106,7 @@ class CustomClip {
 		get {
 			if (!this.HasOwnProp("_title")) {
 				/** @type {TextTrimmer} */
-				clipMenuText := TextTrimmer((this._type = "text") ? CleanNewLines(this.text) : (this._type . " data"))
+				clipMenuText := TextTrimmer((this._type = "text") ? CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
 				this._title := clipMenuText.Value
 			}
 			return this._title
@@ -117,10 +124,17 @@ class CustomClip {
 	 */
 	clip {
 		get {
-			if (!this.HasOwnProp("_clip") && StrLen(this.clipFilePath) > 0 && FileExist(this.clipFilePath)) {
-				this._clip := ClipboardAll(FileRead(this.clipFilePath, "RAW"))
+			if (!this.HasOwnProp("_clip")) {
+				if (StrLen(this.clipFilePath) > 0 && FileExist(this.clipFilePath)) {
+					this._clip := ClipboardAll(FileRead(this.clipFilePath, "RAW"))
+				}
+				else if (this._type = "binary") {
+					if (this.HasOwnProp("_value") && this._value is ClipboardAll) {
+						this._clip := this._value
+					}
+				}
 			}
-			return this._clip
+			return this.HasOwnProp("_clip") ? this._clip : ClipboardAll()
 		}
 	}
 
@@ -180,6 +194,24 @@ class CustomClip {
 	 * @type {String}
 	 */
 	size => (this.value is Buffer) ? (this.value.Size) : StrLen(this.value)
+
+	/**
+	 * Size of clip in a more readable form
+	 * @type {String}
+	 */
+	sizeReadable {
+		get {
+			static stepTranslation := ["K", "M", "G", "T"]
+			stepSize := 1000,
+			step := 0,
+			size := this.size
+			while (size > stepSize && step < stepTranslation.Length) {
+				step++
+				size /= stepSize
+			}
+			return Format("{:.1f}", size) . stepTranslation[step] . (this.value is Buffer ? "B" : "")
+		}
+	}
 
 	/**
 	 * @type {String}
@@ -248,7 +280,7 @@ class CustomClip {
 			return {_type:this._type, file:this.valueFilePath, createdOn:this.createdOn}
 		}
 		else {
-			return {_type:this._type, value:this.value, createdOn:this.createdOn}
+			return {_type:this._type, value:(Type(this.value) = "String") ? this.value : unset, createdOn:this.createdOn}
 		}
 	}
 
@@ -257,11 +289,11 @@ class CustomClip {
 		this._type := jsonObj["_type"]
 		if (jsonObj.Has("value")) {
 			newValue := jsonObj["value"]
-			if (Type(newValue) = "String") {
+			if (this._type = "text" && Type(newValue) = "String") {
 				this.value := newValue
 			}
-			else {
-				this.value := newValue is Buffer ? ClipboardAll(newValue) : JSON.stringify(newValue)
+			else if (this._type = "binary" && newValue is Buffer) {
+				this.value := ClipboardAll(newValue)
 			}
 		}
 		this.createdOn := jsonObj["createdOn"]
