@@ -144,8 +144,8 @@ class CustomClip {
 	 */
 	content {
 		get {
-			if (this.clip != "") {
-				return this.clip
+			if (this.HasOwnProp("_clip")) {
+				return this._clip
 			}
 			else if (this._type = "binary") {
 				return this.value
@@ -262,7 +262,7 @@ class CustomClip {
 	 */
 	Save(savePath := this.SavedAt) {
 		this.SavedAt := savePath
-		if (StrLen(this.clipFilePath) > 0) {
+		if (this.content is Buffer && StrLen(this.clipFilePath) > 0) {
 			FileAppend(this.content, this.clipFilePath)
 		}
 		if (StrLen(this.valueFilePath) > 0) {

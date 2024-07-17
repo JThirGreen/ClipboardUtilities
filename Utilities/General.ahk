@@ -218,3 +218,21 @@ IsOdd(num) {
 IsEven(num) {
 	return !IsOdd(num)
 }
+
+
+/**
+ * Checks if shortcut to script exists in startup folder
+ * @param {VarRef<String>} shortcutPath Optional VarRef for returning full file path of found shortcut
+ * @param {VarRef<String>} outDir Optional VarRef for returning shortcut's working directory
+ * @returns {true|false}
+ */
+HasStartUpShortcut(&shortcutPath := "", &outDir := "") {
+	Loop Files A_Startup . "\*.lnk" {
+		FileGetShortcut(A_LoopFileFullPath, &OutTarget, &OutDir, &OutArgs, &OutDescription, &OutIcon, &OutIconNum, &OutRunState)
+		if (OutTarget = A_ScriptFullPath) {
+			shortcutPath := A_LoopFileFullPath
+			return true
+		}
+	}
+	return false
+}

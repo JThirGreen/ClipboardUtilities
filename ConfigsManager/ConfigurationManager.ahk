@@ -204,17 +204,6 @@ class ConfigurationControl {
 		this.LoadValue()
 	}
 
-	HasStartUpShortcut(&shortcutPath := "") {
-		Loop Files A_Startup . "\*.lnk" {
-			FileGetShortcut(A_LoopFileFullPath, &OutTarget, &OutDir, &OutArgs, &OutDescription, &OutIcon, &OutIconNum, &OutRunState)
-			if (OutTarget = A_ScriptFullPath) {
-				shortcutPath := A_LoopFileFullPath
-				return true
-			}
-		}
-		return false
-	}
-
 	LoadValue() {
 		global ScriptConfigs
 		switch this._type, false {
@@ -227,7 +216,7 @@ class ConfigurationControl {
 					}
 				}
 			case "StartUp":
-				this._ctrlComponents["Input"].Value := this.HasStartUpShortcut()
+				this._ctrlComponents["Input"].Value := HasStartUpShortcut()
 			default:
 				this._ctrlComponents["Input"].Value := ScriptConfigs.Get(this._configPath, this._blankDefault, true)
 		}
@@ -245,12 +234,12 @@ class ConfigurationControl {
 				ScriptConfigs.SetConfigFromPath(this._configPath, this._addedProps["Options"][value].Value, saveToFile)
 			case "StartUp":
 				if (value) {
-					if (!this.HasStartUpShortcut()) {
+					if (!HasStartUpShortcut()) {
 						FileCreateShortcut(A_ScriptFullPath, A_Startup . "\" . A_ScriptName . ".lnk")
 					}
 				}
 				else {
-					if (this.HasStartUpShortcut(&startUpFullPath)) {
+					if (HasStartUpShortcut(&startUpFullPath)) {
 						FileDelete(startUpFullPath)
 					}
 				}

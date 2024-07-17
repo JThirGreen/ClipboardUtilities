@@ -28,8 +28,9 @@ global CustomClipboardMenu := Menu()
  */
 InitCbManager() {
 	global CbManager
-	while (DllCall("GetOpenClipboardWindow"))
+	while (DllCall("GetOpenClipboardWindow")) {
 		Sleep(10)
+	}
 	CbManager.Init()
 	InitCbManagerMenu()
 	CbManager.EnableCbChange()

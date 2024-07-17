@@ -2,6 +2,9 @@
 #Include Text.ahk
 #Include JSON.ahk
 
+/**
+ * @type {Configurations}
+ */
 global ScriptConfigs := Configurations()
 
 class Configurations extends ConfigurationFile{
@@ -55,9 +58,10 @@ class Configurations extends ConfigurationFile{
 	 * @param path The file path to update to
 	 */
 	SetConfigsFilePath(path) {
-		if IsObject(this._baseConfigs) {
-			if (FileExist(this.FileName))
+		if (IsObject(this._baseConfigs)) {
+			if (FileExist(this.FileName)) {
 				FileMove(this.FileName, path)
+			}
 			this._baseConfigs.EditConfigs("configsFilePath", path)
 		}
 	}
