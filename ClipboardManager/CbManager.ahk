@@ -325,6 +325,7 @@ Class ClipboardManager {
 		}
 		this.CbArray := this.CbArrayMap[name]
 		this.SelectedCbArrayName := name
+		this.CbArray.Apply()
 
 		validName := RegExMatch(name, "[1-9]")
 		TraySetIcon(Resource((validName ? ("Images\cb" . name . ".ico") : "Images\tray.ico"), 14).Handle)
