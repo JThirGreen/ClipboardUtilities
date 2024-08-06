@@ -196,9 +196,18 @@ GetClipboardValue(forceMode := "") {
  * 'binary': Handle value as raw clipboard content
  */
 SetClipboardValue(val, type := "text") {
-	cbLockKey := SetClipboardInitializing()
-
-	A_Clipboard := (type = "binary" && IsObject(val)) ? ClipboardAll(val) : val
+	cbLockKey := SetClipboardInitializing(),
+	cbValue := (type = "binary" && IsObject(val)) ? ClipboardAll(val) : val,
+	tryAction := true
+	while (tryAction) {
+		try {
+			A_Clipboard := cbValue,
+			tryAction := false
+		}
+		catch {
+			Sleep(10)
+		}
+	}
 	
 	ClearClipboardInitializing(cbLockKey)
 	return

@@ -204,12 +204,14 @@ class CustomClip {
 			static stepTranslation := ["K", "M", "G", "T"]
 			stepSize := 1000,
 			step := 0,
+			stepPrefix := "",
 			size := this.size
 			while (size > stepSize && step < stepTranslation.Length) {
 				step++
+				stepPrefix := stepTranslation[step]
 				size /= stepSize
 			}
-			return Format("{:.1f}", size) . stepTranslation[step] . (this.value is Buffer ? "B" : "")
+			return Format("{:.1f}", size) . stepPrefix . (this.value is Buffer ? "B" : "")
 		}
 	}
 

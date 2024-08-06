@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0
 #Include General.ahk
 #Include Clipboard.ahk
+#Include Tooltips.ahk
 
 /**
  * Global variable for storing expected number format
@@ -39,6 +40,11 @@ global cbCaseState := -1
  * @type {true|false}
  */
 global cbCaseIsScrolling := false
+
+global caseScrollToolTip := ToolTipList()
+caseScrollToolTip.Push("", " ", "right", "UPPERCASE`r`nTitle Case`r`nCapital case`r`nlowercase`r`n", "right", "")
+global numericScrollToolTip := ToolTipList()
+numericScrollToolTip.Push("", Chr(0x2191) . " +1", "bottom", " ", "bottom", Chr(0x2193) . " -1")
 
 
 ;-----------------------------+
@@ -190,11 +196,13 @@ FormatEncode(str) {
  * If the selected text is a numeric value, then it is incremented/decremented, otherwise the characters are shifted between {@link CaseTransform()} levels
  */
 CaseScroll(increment) {
-	global cbNumberFormat, cbCaseTextOld, cbCaseTextNew, cbCaseState, cbCaseIsScrolling
+	global cbNumberFormat, cbCaseTextOld, cbCaseTextNew, cbCaseState, cbCaseIsScrolling, caseScrollToolTip, numericScrollToolTip
 	/** @type {Integer} */
-	prevState := cbCaseState
+	prevState := cbCaseState,
 	/** @type {true|false} */
-	showToolTip := false
+	showToolTip := false,
+	/** @type {String} */
+	toolTipType := "case"
 	if (IsNumber(cbCaseState) && cbCaseState < 0) {
 		cbCaseTextOld := GetClipboardValue()
 		cbCaseState := GetTextCase(cbCaseTextOld)
@@ -214,7 +222,7 @@ CaseScroll(increment) {
 		case "string":
 			switch cbCaseState {
 				case "numeric":
-					if (!cbCaseTextNew) {
+					if (!StrLen(cbCaseTextNew)) {
 						cbCaseTextNew := cbCaseTextOld
 						if (InStr(cbCaseTextOld, ",")) {
 							cbNumberFormat := ","
@@ -223,10 +231,11 @@ CaseScroll(increment) {
 							cbNumberFormat := ""
 						}
 					}
-					cbCaseTextNew := IncrementNumericString(cbCaseTextNew, increment)
+					cbCaseTextNew := IncrementNumericString(cbCaseTextNew, increment),
+					toolTipType := "numeric",
 					showToolTip := true
 				default:
-					cbCaseTextNew := cbCaseState
+					cbCaseTextNew := cbCaseState,
 					showToolTip := true
 			}
 			
@@ -237,12 +246,21 @@ CaseScroll(increment) {
 	}
 
 	if (showToolTip) {
-		caseMode := ((cbCaseState = 4) ? "  >>" : ">>  ") . "UPPERCASE`r`n"
-		caseMode .= ((cbCaseState = 3) ? "  >>" : ">>  ") . "Title Case`r`n"
-		caseMode .= ((cbCaseState = 2) ? "  >>" : ">>  ") . "Capital case`r`n"
-		caseMode .= ((cbCaseState = 1) ? "  >>" : ">>  ") . "lowercase`r`n"
-		AddToolTip([caseMode, cbCaseTextNew], -1000, "right")
-		SetTimer(CaseScrollEnd,-1000)
+		caseMode := ""
+		switch toolTipType {
+			case "numeric":
+				numericScrollToolTip.Update(true, cbCaseTextNew, true)
+				numericScrollToolTip.Show(1000)
+			default:
+				caseMode .= ((cbCaseState = 4) ? ">>" : Chr(0xA0)) . "`r`n"
+				caseMode .= ((cbCaseState = 3) ? ">>" : Chr(0xA0)) . "`r`n"
+				caseMode .= ((cbCaseState = 2) ? ">>" : Chr(0xA0)) . "`r`n"
+				caseMode .= ((cbCaseState = 1) ? ">>" : Chr(0xA0)) . "`r`n"
+				caseScrollToolTip.Update(caseMode, true, cbCaseTextNew)
+				caseScrollToolTip.Show(1000)
+				
+		}
+		SetTimer(CaseScrollEnd, -1000)
 		cbCaseIsScrolling := true
 	}
 	return
@@ -262,7 +280,8 @@ CaseScrollEnd(cancel := false) {
 	}
 	cbCaseTextOld := ""
 	cbCaseTextNew := ""
-	RemoveToolTip()
+	caseScrollToolTip.Hide()
+	numericScrollToolTip.Hide()
 	return
 }
 
@@ -423,7 +442,7 @@ IncrementNumericString(txt, incrementVal) {
 	if (cbNumberFormat = "," || InStr(txt, ",")) {
 		newTxt := RegExReplace(newTxt, "\G\d+?(?=(\d{3})+(?:\D|$))", "$0,")
 	}
-	return newTxt
+	return String(newTxt)
 }
 
 
@@ -558,6 +577,9 @@ WrapTextMultiline(txt, opener, closer) {
 WrapTextNamed(txt, wrapName, wrapMode) {
 	GetWrappersFromMode(wrapMode, &opener, &closer)
 
+	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./]+)(?P<postspace>\s*)", &wrapNameMatch)) {
+		wrapName := wrapNameMatch["prespace"] . wrapNameMatch["wrapname"] . opener . closer . wrapNameMatch["postspace"]
+	}
 	valueToPaste := ""
 	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<opener>\S.*\" . opener . ")\s*(?P<closer>(,[^" . closer . "]*)*\" . closer . "(.+\S)?)(?P<postspace>\s*)$", &wrapFuncMatch)) {
 		wrappedTxt := ""

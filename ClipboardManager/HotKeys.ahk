@@ -159,6 +159,16 @@ CoordMode("Menu")
 		}
 	}
 	
+	; Ctrl + Shift + V + right click
+	;v & RButton::
+	;{
+	;	global CbManager, selectedText
+	;	CbManager.DisableCbChange()
+	;	InitClipboard()
+	;	- Future Special Function Here -
+	;	CbManager.EnableCbChange()
+	;}
+	
 	; Ctrl + Shift + V + Backspace
 	v & BS::
 	{
@@ -183,6 +193,7 @@ CoordMode("Menu")
 
 	; Ctrl + Shift + V + action key (Released)
 	v & LButton up::
+	;v & RButton up::
 	v & Right up::
 	v & Enter up::
 	v & XButton2 up::
@@ -328,7 +339,6 @@ CbManagerAction(forceEnd := false) {
 				CbManager.DisableCbChange()
 				CbManager.RemoveSelected()
 				CbManager.ReloadCbArrayMenu := true
-				AddToolTip(ToolTipInfo(CbManager.CbArrayStatus, 3))
 				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 			case "removePrev":
 				CbManager.DisableCbChange()

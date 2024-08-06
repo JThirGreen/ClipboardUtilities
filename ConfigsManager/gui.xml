@@ -7,11 +7,11 @@
 			</Options>
 			<Options Type="Number" Start="0" End="10000" Step="50" Skip="0"></Options>
 		</Property>
-		<Property Name="menuItemsCount" Type="Number" Description="# of clips shown at a time in menu selector"></Property>
+		<Property Name="menuItemsCount" Type="Number" Description="# of clips shown at a time in clip list menu"></Property>
 	</Config>
 	<Config Name="ClipArray">
-		<Property Name="maxClips" Type="Number" Description="Maximum # of clips in clip history" Note="Ignored when bulk copying"></Property>
-		<Property Name="maxTooltipItems" Type="Number" Description="# of clips shown at a time in tooltip selector"></Property>
+		<Property Name="maxClips" Type="Number" Description="Maximum # of clips in clip list" Note="Ignored when bulk copying"></Property>
+		<Property Name="maxTooltipItems" Type="Number" Description="# of clips shown at a time in clip list tooltip"></Property>
 		<Property Name="trimBulkCopy" Type="Checkbox" Description="Trim whitespaces when bulk copying"></Property>
 	</Config>
 	<Config Name="">

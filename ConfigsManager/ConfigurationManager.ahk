@@ -145,16 +145,21 @@ class ConfigurationControl {
 	_configPath := ""
 	_guiPosition := ""
 	_blankDefault := ""
+	/** @type {Map<String, Any>} */
 	_addedProps := Map()
 
+	/** @type {Map<String, Gui.Control>} */
 	_ctrlComponents := Map()
 
+	/** @type {Map<String, {x, y, width, height}>} */
+	_ctrlPositions := Map()
+
 	__New(Gui, Name, Type, Description, ConfigPath, GuiPosition, AdditionalProperties?) {
-		this._gui := Gui
-		this._name := Name
-		this._type := Type
-		this._description := Description
-		this._configPath := ConfigPath
+		this._gui := Gui,
+		this._name := Name,
+		this._type := Type,
+		this._description := Description,
+		this._configPath := ConfigPath,
 		this._guiPosition := GuiPosition
 		if (IsSet(AdditionalProperties)) {
 			this._addedProps := AdditionalProperties
@@ -246,5 +251,22 @@ class ConfigurationControl {
 			default:
 				ScriptConfigs.SetConfigFromPath(this._configPath, value, saveToFile)
 		}
+	}
+
+	/**
+	 * Get position and size of an inner control by name
+	 * @param {String} crtlName Name of inner control
+	 * @returns {{x, y, width, height, found}}
+	 */
+	GetPos(crtlName) {
+		if (this._ctrlComponents.Has(crtlName)) {
+			if (!this._ctrlPositions.Has(crtlName)) {
+				x := "", y := "", w := "", h := ""
+				try ControlGetPos(&x, &y, &w, &h, this._ctrlComponents[crtlName])
+				this._ctrlPositions[crtlName] := {x:x, y:y, width:w, height:h, found:true}
+			}
+			return this._ctrlPositions[crtlName]
+		}
+		return {x:0, y:0, width:0, height:0, found:false}
 	}
 }

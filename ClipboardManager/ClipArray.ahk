@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include ..\Utilities\General.ahk
+#Include ..\Utilities\Tooltips.ahk
 #Include ..\Utilities\Array.ahk
 #Include ..\Utilities\NestedArray.ahk
 #Include ..\Utilities\JSON.ahk
@@ -110,6 +111,11 @@ class ClipArray {
 
 	IsLoaded := false
 
+	/**
+	 * @type {ToolTipList}
+	 */
+	_toolTipList := ToolTipList()
+
 	__New(saveToFile := false, Name := "Clips") {
 		; Get config values to ensure defaults are populated
 		this.configs.Get("maxClips", 20, true)
@@ -168,29 +174,7 @@ class ClipArray {
 	 */
 	TooltipText {
 		get {
-			listBounds := SubsetBounds(this.TotalLength, this.configs.Get("maxTooltipItems", 20, true), this.selectedIdx)
-
-			tipText := "Clipboard (" . listBounds.FullLength . ")"
-			if (StrLen(this.Category) > 0)
-				tipText .= " [" . this.Category . "]"
-			tipText .= ":`r`nClick to select`r`n"
-			if (listBounds.Start > 1)
-				tipText .= "(" . listBounds.Start - 1 . ")`r`n"
-
-			Loop listBounds.Length {
-				clipIdx := A_Index - 1 + listBounds.Start
-				tipText .= (clipIdx = this.selectedIdx) ? "   >>" : ">>   "
-				tipText .= "|"
-				
-				if (Type(this[clipIdx]) = "String")
-					MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
-				tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].title) : this[clipIdx].title) . "`r`n"
-			}
-
-			if (listBounds.End < listBounds.FullLength)
-				tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
-
-			return tipText
+			return this.ReloadToolTip()
 		}
 	}
 
@@ -676,6 +660,52 @@ class ClipArray {
 			return Array2String(this._clips, separator)
 	}
 
+	ReloadToolTip(headerTxt := "") {
+		listBounds := SubsetBounds(this.TotalLength, this.configs.Get("maxTooltipItems", 20, true), this.selectedIdx)
+
+		if (StrLen(headerTxt) > 0) {
+			headerTxt .= "`r`n"
+		}
+		headerTxt .= "Clipboard (" . listBounds.FullLength . ")",
+		tipText := "",
+		selText := ""
+		if (StrLen(this.Category) > 0) {
+			headerTxt .= " [" . this.Category . "]"
+		}
+		headerTxt .= ":`r`nClick to select`r`n"
+		if (listBounds.Start > 1) {
+			tipText .= "(" . listBounds.Start - 1 . ")`r`n",
+			selText .= "`r`n"
+		}
+
+		Loop listBounds.Length {
+			clipIdx := A_Index - 1 + listBounds.Start,
+			selText .= (clipIdx = this.selectedIdx) ? ">>" : Chr(0xA0)
+			
+			if (Type(this[clipIdx]) = "String") {
+				MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
+			}
+			tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].title) : this[clipIdx].title) . "`r`n",
+			selText .= "`r`n"
+		}
+
+		if (listBounds.End < listBounds.FullLength) {
+			tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
+		}
+
+		if (this._toolTipList.Length = 0) {
+			this._toolTipList.Reset()
+			if (IsSet(headerTxt)) {
+				this._toolTipList.Add(headerTxt)
+			}
+			this._toolTipList.Push("", selText, "right", tipText)
+		}
+		else {
+			this._toolTipList.Update(headerTxt ?? true, selText, tipText)
+		}
+		return tipText
+	}
+
 	/**
 	 * Show/hide clip array tooltip
 	 * @param {true|false} show
@@ -686,14 +716,15 @@ class ClipArray {
 	 */
 	Tooltip(show := true, txtArray := [], delay := 5000) {
 		if (show) {
-			if (!this.Length)
+			if (!this.Length) {
 				this.AppendClipboard()
+			}
 
-			txtArray.Push(this.TooltipText)
-			AddToolTip(txtArray, delay)
+			this.ReloadToolTip(txtArray)
+			this._toolTipList.Show(delay)
 		}
 		else {
-			RemoveToolTip()
+			this._toolTipList.Hide()
 		}
 	}
 

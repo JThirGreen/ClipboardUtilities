@@ -2,6 +2,7 @@
 #Include ..\MenuManager\main.ahk
 #Include ..\Utilities\General.ahk
 #Include ..\Utilities\Text.ahk
+#Include ..\Utilities\Tooltips.ahk
 #Include ..\Utilities\Array.ahk
 #Include ..\Utilities\Configs.ahk
 #Include ..\Utilities\XMLTools.ahk
@@ -9,7 +10,7 @@
 #Include ..\Utilities\Resource.ahk
 #Include ClipArray.ahk
 
-Class ClipboardManager {
+class ClipboardManager {
 	configs := Configurations("ClipboardManager")
 
 	/**
@@ -169,7 +170,7 @@ Class ClipboardManager {
 		if (IsSet(name) && name != this.CbArray.Name && this.CbArrayMap.Has(name)) {
 			this.CbArrayMap[name].DeleteFromFolder()
 			this.CbArrayMap.Delete(name)
-			AddToolTip(["Selected clip list (" . name . ") has been deleted", "Clip list `"" . this.CbArray.Name . "`" is now selected"], 5000)
+			AddToolTip("Selected clip list (" . name . ") has been deleted`r`nClip list `"" . this.CbArray.Name . "`" is now selected", 5000)
 		}
 		else {
 			SetClipboardValue("")
@@ -296,7 +297,7 @@ Class ClipboardManager {
 	 * false: Hide tooltip if currently shown
 	 */
 	Tooltip(show := true, delay?) {
-		this.CbArray.Tooltip(show, ["Clip history selected: " . String(this.SelectedCbArrayName)], delay ?? unset)
+		this.CbArray.Tooltip(show, "Clip history selected: " . String(this.SelectedCbArrayName), delay ?? unset)
 	}
 
 	/**
