@@ -45,6 +45,19 @@ global selectedClip := {}
 global inputMode := ""
 
 /**
+ * Check if clipboard is accessible
+ * @returns {true|false}
+ */
+IsClipboardAvailable() {
+	try {
+		return ClipboardAll() is ClipboardAll
+	}
+	catch {
+		return false
+	}
+}
+
+/**
  * Populates {@link copiedText}, {@link copiedClip}, {@link selectedText}, and {@link selectedClip}
  * 
  * {@link copiedText} populated with current text contained in clipboard
@@ -80,6 +93,9 @@ SetClipboardInitializing() {
 	/** @type {true|false} */
 	cbLockFlagKey := false
 	if (!clipboardInitializing) {
+		while(!IsClipboardAvailable()) {
+			Sleep(50)
+		}
 		clipboardInitializing := true
 		cbLockFlagKey := true
 	}
@@ -138,8 +154,9 @@ GetSelectedText(restoreClipboard := true) {
 	
 	selectedText := A_Clipboard
 	selectedClip := ClipboardAll()
-	if (restoreClipboard)
+	if (restoreClipboard) {
 		A_Clipboard := cbTemp	; Restore clipboard before returning
+	}
 	
 	ClearClipboardInitializing(cbLockKey)
 	return selectedText
