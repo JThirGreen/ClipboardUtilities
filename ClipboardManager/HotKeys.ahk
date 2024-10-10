@@ -36,7 +36,11 @@ CoordMode("Menu")
 ; Swap selected text with clipboard
 ^+x::
 {
+	global CbManager
+	CbManager.DisableCbChange()
 	SwapTextWithClipboard()
+	CbManager.ReplaceSelected()
+	CbManager.EnableCbChange()
 }
 
 ; Ctrl + Shift + V

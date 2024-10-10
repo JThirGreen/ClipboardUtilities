@@ -2,11 +2,15 @@
 
 /**
  * Extends upon {@link Array} with support for parsing multi-dimensional content as a flattened 1-dimensional array
+ * @template T
+ * @extends {Array}
  */
 class NestedArray extends Array {
 
 	/**
 	 * Delete the value of the array element so that the index does not contain a value.
+	 * @param {Number} Index
+	 * @returns {Any} Deleted value
 	 */
 	Delete(Index) {
 		val := this[Index]
@@ -16,6 +20,9 @@ class NestedArray extends Array {
 
 	/**
 	 * Returns the value at a given flattened array index, or a default value.
+	 * @param {Number} Index
+	 * @param {T} Default
+	 * @param {VarRef<T>} itemArray
 	 */
 	Get(Index, Default?, &itemArray?) {
 		i := 0
@@ -52,6 +59,7 @@ class NestedArray extends Array {
 
 	/**
 	 * If Index is valid and there is a value at that position, it returns true, otherwise it returns false.
+	 * @param {Number} Index
 	 */
 	Has(Index) {
 		return (IsInteger(Index) && Index > 0 && Index <= this.TotalLength && this.Get(Index, "") != "")
@@ -59,6 +67,8 @@ class NestedArray extends Array {
 
 	/**
 	 * Insert one or more values to the given position.
+	 * @param {Number} Index
+	 * @param {Array<T>} Value
 	 */
 	InsertAt(Index, Value*) {
 		relArray := this.GetRelativeArrayAndIndex(Index)
@@ -66,7 +76,21 @@ class NestedArray extends Array {
 	}
 
 	/**
-	 * Delete and return the last non-array element regardless of depth.
+	 * Replace one or more values to the given position.
+	 * @param {Number} Index
+	 * @param {Array<T>} Value
+	 */
+	ReplaceAt(Index, Value*) {
+		for idx, val in Value {
+			valIdx := Index + idx
+			relArray := this.GetRelativeArrayAndIndex(Index)
+			relArray.Array[relArray.Index] := val
+		}
+	}
+
+	/**
+	 * Delete and return the last non-array element regardless of String()).
+	 * @returns {T}
 	 */
 	PopItem() {
 		item
@@ -92,6 +116,11 @@ class NestedArray extends Array {
 			return this.Pop()
 	}
 
+	/**
+	 * Remove one or more values started from the given position.
+	 * @param {Number} Index
+	 * @param {Number} Length
+	 */
 	RemoveAt(Index, Length?) {
 		if (IsSet(Length)) {
 			toRemove := Length
@@ -255,6 +284,7 @@ class NestedArray extends Array {
 
 	/**
 	 * Return an {@link Array} only copy of this {@link NestedArray}
+	 * @type {Array<T>}
 	 */
 	Array {
 		get {

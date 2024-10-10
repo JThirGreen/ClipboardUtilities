@@ -577,11 +577,11 @@ WrapTextMultiline(txt, opener, closer) {
 WrapTextNamed(txt, wrapName, wrapMode) {
 	GetWrappersFromMode(wrapMode, &opener, &closer)
 
-	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./]+)(?P<postspace>\s*)", &wrapNameMatch)) {
+	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./]+)(?P<postspace>\s*)$", &wrapNameMatch)) {
 		wrapName := wrapNameMatch["prespace"] . wrapNameMatch["wrapname"] . opener . closer . wrapNameMatch["postspace"]
 	}
 	valueToPaste := ""
-	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<opener>\S.*\" . opener . ")\s*(?P<closer>(,[^" . closer . "]*)*\" . closer . "(.+\S)?)(?P<postspace>\s*)$", &wrapFuncMatch)) {
+	if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<opener>\S.*\" . opener . ")[^,]*(?P<closer>(,[^\" . closer . "]*)*\" . closer . "(.+\S)?)(?P<postspace>\s*)$", &wrapFuncMatch)) {
 		wrappedTxt := ""
 		/** @type {Array} */
 		txtLines := StrSplit(txt, "`n", "`r")

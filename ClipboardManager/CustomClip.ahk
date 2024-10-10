@@ -92,6 +92,9 @@ class CustomClip {
 				else if (this._type = "binary") {
 					this._value := this.clip
 				}
+				else {
+					return ""
+				}
 			}
 			return this._value
 		}
@@ -299,5 +302,26 @@ class CustomClip {
 			}
 		}
 		this.createdOn := jsonObj["createdOn"]
+	}
+
+	/**
+	 * Creates new {@link CustomClip} from clipboard. If clipboard fails to be evaluated as text, then copying {@link ClipboardAll()} is instead attempted. If {@link ClipboardAll()} is also empty, then no {@link CustomClip} is created
+	 * @param {''|'text'|'binary'} dataType
+	 * 
+	 * ''|'text': Default behavior of copying {@link A_Clipboard} with {@link ClipboardAll()} as a fallback
+	 * 
+	 * 'binary': Skips straight to copying {@link ClipboardAll()}
+	 */
+	static LoadFromClipboard(dataType := "") {
+		clip := (dataType != "binary") ? A_Clipboard : ""
+		if (clip != "") {
+			return CustomClip(clip, "text", ClipboardAll())
+		}
+		else {
+			clip := ClipboardAll()
+			if (clip.Size > 0) {
+				return CustomClip(clip, "binary")
+			}
+		}
 	}
 }

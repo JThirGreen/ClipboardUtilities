@@ -262,23 +262,23 @@ class ClipArray {
 	}
 
 	/**
-	 * Copies clipboard to {@link clips}. If clipboard fails to be evaluated as text, then copying {@link ClipboardAll()} is instead attempted. If {@link ClipboardAll()} is also empty, then {@link clips} is unchanged.
-	 * @param {''|'text'|'binary'} dataType
-	 * 
-	 * ''|'text': Default behavior of copying {@link A_Clipboard} with {@link ClipboardAll()} as a fallback
-	 * 
-	 * 'binary': Skips straight to copying {@link ClipboardAll()}
+	 * Replace currently selected {@link CustomClip} clip from array
+	 * @param {CustomClip} newClip Clip to replace selected
+	 */
+	ReplaceSelected(newClip := CustomClip.LoadFromClipboard()) {
+		if (this.selectedIdx > 0 && this._clips.Has(this.selectedIdx)) {
+			this._clips.ReplaceAt(this.selectedIdx, newClip)
+		}
+	}
+
+	/**
+	 * Create {@link CustomClip} from clipboard and add it to clips array. If {@link CustomClip} fails to be created, then clips array is unchanged.
+	 * @param {''|'text'|'binary'} dataType Type of clipboard data to request
 	 */
 	AppendClipboard(dataType := "") {
-		clip := (dataType != "binary") ? A_Clipboard : ""
-		if (clip != "") {
-			this.Add(CustomClip(clip, "text", ClipboardAll()), true)
-		}
-		else {
-			clip := ClipboardAll()
-			if (clip.Size > 0) {
-				this.Add(CustomClip(clip, "binary"), true)
-			}
+		newClip := CustomClip.LoadFromClipboard(dataType)
+		if (newClip is CustomClip) {
+			this.Add(newClip, true)
 		}
 	}
 

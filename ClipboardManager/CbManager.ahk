@@ -33,7 +33,7 @@ class ClipboardManager {
 	 * {@link ClipArray} for holding clipboard history of CbManager
 	 * @type {ClipArray}
 	 */
-	CbArray := ""
+	CbArray => this.CbArrayMap.Has(this.SelectedCbArrayName) ? this.CbArrayMap[this.SelectedCbArrayName] : ""
 	
 	/**
 	 * Map of saved {@link ClipArray} objects
@@ -109,7 +109,11 @@ class ClipboardManager {
 	 * 'binary': Skips straight to copying {@link ClipboardAll()}
 	 */
 	LoadFromClipboard(dataType := "") {
-		this.AppendableClip().AppendClipboard(dataType)
+		appendableCbArray := this.AppendableClip(false)
+		appendableCbArray.AppendClipboard(dataType)
+		if (appendableCbArray != this.CbArray) {
+			this.AppendableClip(true)
+		}
 		this.MarkChanged()
 	}
 
@@ -213,6 +217,20 @@ class ClipboardManager {
 	}
 
 	/**
+	 * Replace currently selected {@link CustomClip} clip from array
+	 * @param {CustomClip} newClip Clip to replace selected
+	 */
+	ReplaceSelected(newClip := CustomClip.LoadFromClipboard()) {
+		if (this.AppendableClip() != this.CbArray) {
+			this.AppendableClip(true).Add(newClip)
+		}
+		else {
+			this.CbArray.ReplaceSelected(newClip)
+		}
+		this.MarkChanged()
+	}
+
+	/**
 	 * Shift clip selection index by {increment} number of steps
 	 * @param {Integer} increment Number of steps to shift selection
 	 * 
@@ -278,12 +296,18 @@ class ClipboardManager {
 
 	/**
 	 * Check if current clip array allows appending clips, and select default clip array if not
+	 * @param {true|false} select
 	 * @returns {ClipArray} Selected appendable clip array
 	 */
-	AppendableClip() {
+	AppendableClip(select:=true) {
 		if (this.CbArray.Category = "List") {
-			this.SelectCbArray(0, false)
-			AddToolTip("Default clip list selected")
+			if (select) {
+				this.SelectCbArray(0, false)
+				AddToolTip("Default clip list selected")
+			}
+			else {
+				return this.GetCbArray(0)
+			}
 		}
 		return this.CbArray
 	}
@@ -309,12 +333,15 @@ class ClipboardManager {
 	 */
 	GetCbArray(name?) {
 		if (IsSet(name) && StrLen(name) > 0)
-			if (this.CbArrayMap.Has(name))
+			if (this.CbArrayMap.Has(name)) {
 				return this.CbArrayMap[name]
-			else
+			}
+			else {
 				MsgBox("Clip list `"" . name . "`" could not be found")
-		else
+			}
+		else {
 			return this.CbArray
+		}
 	}
 
 	SelectCbArray(name, showToolTip := true) {
@@ -324,7 +351,6 @@ class ClipboardManager {
 				this.CbArrayMap[name].LoadFromFolder()
 			}
 		}
-		this.CbArray := this.CbArrayMap[name]
 		this.SelectedCbArrayName := name
 		this.CbArray.Apply()
 
@@ -384,7 +410,8 @@ class ClipboardManager {
 
 	MarkChanged(soft := false) {
 		this.ReloadCbArrayMenu := true
-		if (!soft && this.UseClipFiles)
+		if (!soft && this.UseClipFiles) {
 			this.CbArray.SaveToFolder()
+		}
 	}
 }
