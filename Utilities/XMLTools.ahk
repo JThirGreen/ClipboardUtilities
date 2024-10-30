@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include Clipboard.ahk
-#Include Text.ahk
+#Include TextTools.ahk
 
 ; Alt + Shift + <
 ; XML encode [< >]
@@ -63,7 +63,7 @@ XMLTransform_cb(tfType, wrapType:="") {
 		case "comment","uncomment":
 			forceSelectMode := true
 	}
-	txt := CleanNewLines(GetClipboardValue(forceSelectMode ? "select" : "")),
+	txt := TextTools.CleanNewLines(GetClipboardValue(forceSelectMode ? "select" : "")),
 	newTxt := ""
 	if (txt != "" || (tfType = "empty" && wrapType != "")) {
 		switch wrapType {

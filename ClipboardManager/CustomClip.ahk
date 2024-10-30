@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0
-#Include ..\Utilities\Text.ahk
+#Include ..\Utilities\TextTools.ahk
 #Include ..\Utilities\JSON.ahk
 #Include ..\Utilities\Clipboard.ahk
 #Include ..\Utilities\TextTrimmer.ahk
@@ -109,7 +109,7 @@ class CustomClip {
 		get {
 			if (!this.HasOwnProp("_title")) {
 				/** @type {TextTrimmer} */
-				clipMenuText := TextTrimmer((this._type = "text") ? CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
+				clipMenuText := TextTrimmer((this._type = "text") ? TextTools.CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
 				this._title := clipMenuText.Value
 			}
 			return this._title
@@ -154,7 +154,7 @@ class CustomClip {
 				return this.value
 			}
 			else {
-				return CleanNewLines(this.ToString())
+				return TextTools.CleanNewLines(this.ToString())
 			}
 		}
 	}

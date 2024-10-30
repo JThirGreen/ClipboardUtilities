@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0
-#Include Text.ahk
+#Include TextTools.ahk
 #Include JSON.ahk
 
 /**
@@ -137,7 +137,7 @@ class ConfigurationFile {
 		}
 
 		this._configFileName := Trim(name)
-		if (EndsWith(this._configFileName, "." . this._configFileExt, false)) {
+		if (TextTools.EndsWith(this._configFileName, "." . this._configFileExt, false)) {
 			this._configFileName := StrReplace(this._configFileName, "." . this._configFileExt, "")
 		}
 		if (this._configFileName != "") {

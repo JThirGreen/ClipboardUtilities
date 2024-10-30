@@ -1,6 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include General.ahk
-#Include Text.ahk
+#Include TextTools.ahk
 
 class SubsetBounds {
 	
@@ -109,11 +109,121 @@ MapArray(arrayObj, callback) {
 
 /**
  * Takes comma-separated string {commaStr} and returns it as an array
- * @param {String} commaStr comma-separated string
+ * @param {String} commaStr Comma-separated string
+ * @param {true|false} trimItems If true, then trim each parsed list item
  * @returns {Array}
  */
-CommaList2Array(commaStr) {
-	return StrSplit(commaStr, ",")
+CommaListToArray(commaStr, trimItems := false) {
+	arrayList := []
+	if (!InStr(commaStr, "`"") && !InStr(commaStr, "[") && !InStr(commaStr, "{")) {
+		arrayList := StrSplit(commaStr, ",")
+	}
+	else {
+		remainder := commaStr
+		arrayList := []
+
+		Loop {
+			trimmedRemainder := Trim(remainder)
+			if (StrLen(trimmedRemainder) > 0) {
+				firstChar := SubStr(trimmedRemainder, 1, 1)
+				itemSubStr := ""
+				switch (firstChar) {
+					case "@", "$":
+						if (SubStr(trimmedRemainder, 2, 1) = "`"") {
+							itemSubStr := extractQuote(remainder)
+						}
+					case "`"":
+						itemSubStr := extractQuote(remainder)
+					case "[":
+						itemSubStr := extractSquare(remainder)
+					case "{":
+						itemSubStr := extractCurly(remainder)
+					default:
+				}
+
+				if (itemSubStr = "") {
+					nextCommaPos := InStr(remainder, ",")
+					itemSubStr := nextCommaPos ? SubStr(remainder, 1, nextCommaPos - 1) : remainder
+				}
+
+				arrayList.Push(itemSubStr)
+				itemSubStrLen := StrLen(itemSubStr)
+				if (StrLen(remainder) > itemSubStrLen && SubStr(remainder, itemSubStrLen + 1, 1) = ",") {
+					remainder := SubStr(remainder, itemSubStrLen + 2)
+				}
+				else {
+					break
+				}
+
+				/**
+				 * Regex below looks for substring before next comma unless that comma is contained within [], {}, or "".
+				 * It attempts to ignore conflicting characters when escaped either by being repeated or when preceded with a \.
+				 */
+				/** blank, test, [bracket,test}"], {brace],"test}, "(quote),{test}", [[[]]\[\]]], {{{}}\{\}}}, """\"" */
+				/** ^(?<item>\s*(?:(?:[^\[\{"\s,][^,]*)?|\[(?:[^\]]|\\\]|(?<!\\)(?:\\\\)*\]\])*\]|\{(?:[^}]|\\\}|(?<!\\)(?:\\\\)*\}\})*\}|"(?:[^"]|\\"|(?<!\\)(?:\\\\)*"")*")\s*)(?:$|,(?<remainder>.*)) */
+				/*RegExMatch(remainder, "^(?<item>\s*(?:(?:[^\[\{`"\s,][^,]*)?|\[(?:[^\]]|\\\]|(?<!\\)(?:\\\\)*\]\])*\]|\{(?:[^}]|\\\}|(?<!\\)(?:\\\\)*\}\})*\}|`"(?:[^`"]|\\`"|(?<!\\)(?:\\\\)*`"`")*`")\s*)(?:$|,(?<remainder>.*))", &itemMatch)
+				if (itemMatch != "") {
+					arrayList.Push(itemMatch["item"])
+					remainder := itemMatch["remainder"]
+				}
+				else {
+					break
+				}*/
+			}
+			else {
+				break
+			}
+		}
+	}
+
+	if (trimItems) {
+		for idx, item in arrayList {
+			arrayList[idx] := Trim(item)
+		}
+	}
+	return arrayList
+
+	extractQuote(commaSubStr) {
+		quoteMatch := ""
+		if (quoteMatch = "" && InStr(commaSubStr, "\`"")) {
+			RegExMatch(commaSubStr, "^(\s*(?:[$@]?`"(?:[^\\`"]|\\\\|\\`")*`")\s*)(?:$|,)", &quoteMatch)
+		}
+		if (quoteMatch = "" && InStr(commaSubStr, "```"")) {
+			RegExMatch(commaSubStr, "^(\s*(?:`"(?:[^```"]|````|```")*`")\s*)(?:$|,)", &quoteMatch)
+		}
+		if (quoteMatch = "" && InStr(commaSubStr, "`"`"")) {
+			RegExMatch(commaSubStr, "^(\s*(?:`"(?:[^`"]|`"`")*`")\s*)(?:$|,)", &quoteMatch)
+		}
+		if (quoteMatch = "") {
+			commaPos := InStr(commaSubStr, "`",")
+			if (commaPos) {
+				return SubStr(commaSubStr, 1, commaPos)
+			}
+		}
+		return (quoteMatch = "") ? commaSubStr : quoteMatch[1]
+	}
+
+	extractSquare(commaSubStr) {
+		squareMatch := ""
+		if (squareMatch = "" && InStr(commaSubStr, "]]")) {
+			RegExMatch(commaSubStr, "^(\s*(?:\[(?:[^\]]|\]\])*])\s*)(?:$|,)", &squareMatch)
+		}
+		if (squareMatch = "" && InStr(commaSubStr, "\]")) {
+			RegExMatch(commaSubStr, "^(\s*(?:\[(?:[^\\\]]|\\\\|\\\])*\])\s*)(?:$|,)", &squareMatch)
+		}
+		return (squareMatch = "") ? commaSubStr : squareMatch[1]
+	}
+
+	extractCurly(commaSubStr) {
+		curlyMatch := ""
+		if (curlyMatch = "" && InStr(commaSubStr, "}}")) {
+			RegExMatch(commaSubStr, "^(\s*(?:\{(?:[^}]|}})*})\s*)(?:$|,)", &curlyMatch)
+		}
+		if (curlyMatch = "" && InStr(commaSubStr, "\}")) {
+			RegExMatch(commaSubStr, "^(\s*(?:\{(?:[^\\}]|\\\\|\\})*})\s*)(?:$|,)", &curlyMatch)
+		}
+		return (curlyMatch = "") ? commaSubStr : curlyMatch[1]
+	}
 }
 
 /**
@@ -125,9 +235,9 @@ CommaList2Array(commaStr) {
  * @param {VarRef} delimiterUsed Holds delimiter actually used for reference
  * @returns {Array}
  */
-String2Array(str, delimiter := "", &delimiterUsed?) {
+DSVToArray(str, delimiter := "", &delimiterUsed?) {
 	if (StrLen(delimiter) = 0) {
-		str := TrimIfNotContains(CleanNewLines(str), "`n")
+		str := TextTools.TrimIfNotContains(TextTools.CleanNewLines(str), "`n")
 		delimiter := GetDelimiterFromString(str)
 	}
 	if (IsSet(delimiterUsed)) {
@@ -141,7 +251,7 @@ String2Array(str, delimiter := "", &delimiterUsed?) {
 		return [str]
 	}
 	else if (delimiter = "`n" || (!InStr(str, "`"") && !InStr(str, "`n"))) {
-		return StrSplit(CleanNewLines(str), delimiter)
+		return StrSplit(TextTools.CleanNewLines(str), delimiter)
 	}
 	else {
 		strArray := [], lineArray := []

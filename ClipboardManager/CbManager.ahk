@@ -227,6 +227,9 @@ class ClipboardManager {
 		else {
 			this.CbArray.ReplaceSelected(newClip)
 		}
+		TrayTip(newClip.title, "Moved to clipboard", 0x14)
+		SetTimer(() => (TrayTip()), 2000)
+		;ToolTipList(["Moved to clipboard:", newClip.title]).Show()
 		this.MarkChanged()
 	}
 

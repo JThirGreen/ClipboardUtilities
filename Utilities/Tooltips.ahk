@@ -4,7 +4,7 @@ CoordMode("Mouse")
 CoordMode("ToolTip")
 
 /** @type {ToolTipList} */
-global mainToolTipList := ToolTipList()
+global MainToolTipList := ToolTipList()
 
 class ToolTipList {
 	/**
@@ -12,6 +12,16 @@ class ToolTipList {
 	 * @type {Array<ToolTipBox>}
 	 **/
 	ToolTips := [""]
+
+	/**
+	 * @param {String|Array<String>} content Content displayed in tooltip
+	 * @param {"top"|"left"|"right"|"bottom"} direction Direction to append content to if multiple are provided
+	 */
+	__New(content?, direction?) {
+		if (IsSet(content)) {
+			this.Add(content, direction?)
+		}
+	}
 	
 	__Item[i] {
 		; {i} is incremented in order to skip the default tool tip (1) while also allowing it to still be accessed with intent by using non-standard index (0)

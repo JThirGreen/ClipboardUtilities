@@ -589,15 +589,15 @@ class ClipArray {
 	LoadString(str, mode) {
 		switch StrLower(mode) {
 			case "list":
-				this.LoadArray(String2Array(str, "`n"))
+				this.LoadArray(DSVToArray(str, "`n"))
 			case "commalist":
-				this.LoadArray(CommaList2Array(str))
+				this.LoadArray(CommaListToArray(str))
 			case "csv":
-				this.LoadArray(String2Array(str, ","))
+				this.LoadArray(DSVToArray(str, ","))
 			case "tsv":
-				this.LoadArray(String2Array(str, "`t"))
+				this.LoadArray(DSVToArray(str, "`t"))
 			case "dsv":
-				this.LoadArray(String2Array(str, , &delimiter := ""))
+				this.LoadArray(DSVToArray(str, , &delimiter := ""))
 			default:
 				this.Add(CustomClip(str))
 				return false
@@ -681,11 +681,13 @@ class ClipArray {
 		Loop listBounds.Length {
 			clipIdx := A_Index - 1 + listBounds.Start,
 			selText .= (clipIdx = this.selectedIdx) ? ">>" : Chr(0xA0)
-			
-			if (Type(this[clipIdx]) = "String") {
-				MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" .  this[clipIdx])
+			/** @type {CustomClip} */
+			clip := this[clipIdx]
+			if (Type(clip) = "String") {
+				; Display debug message as a clip should never be a string.
+				;MsgBox(String(A_Index) . " [" . JSON.stringify(listBounds) . "]::" . clip)
 			}
-			tipText .= (this.trimBulkCopy ? Trim(this[clipIdx].title) : this[clipIdx].title) . "`r`n",
+			tipText .= (this.trimBulkCopy ? Trim(clip.title) : clip.title) . "`r`n",
 			selText .= "`r`n"
 		}
 

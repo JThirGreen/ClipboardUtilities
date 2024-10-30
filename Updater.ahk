@@ -1,5 +1,4 @@
 #Requires AutoHotkey v2.0
-#Include Utilities\Text.ahk
 #Include Utilities\HTTP.ahk
 
 ; Ctrl + Alt + Shift + U
