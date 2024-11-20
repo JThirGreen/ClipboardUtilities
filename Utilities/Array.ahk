@@ -61,8 +61,9 @@ class SubsetBounds {
 
 /**
  * Search array for a specified value
- * @param {Array} haystack array to search
- * @param {Any} needle value to search for in array
+ * @template T
+ * @param {Array<T>} haystack array to search
+ * @param {T} needle value to search for in array
  * @returns {true|false}
  */
 InArray(haystack, needle, &foundIndex?) {
@@ -111,7 +112,7 @@ MapArray(arrayObj, callback) {
  * Takes comma-separated string {commaStr} and returns it as an array
  * @param {String} commaStr Comma-separated string
  * @param {true|false} trimItems If true, then trim each parsed list item
- * @returns {Array}
+ * @returns {Array<String>}
  */
 CommaListToArray(commaStr, trimItems := false) {
 	arrayList := []
@@ -232,8 +233,8 @@ CommaListToArray(commaStr, trimItems := false) {
  * @param {String} delimiter Delimiter to use by parsing
  * 
  * If delimiter is not provided, then determine delimiter via {@link GetDelimiterFromString()}
- * @param {VarRef} delimiterUsed Holds delimiter actually used for reference
- * @returns {Array}
+ * @param {VarRef<String>} delimiterUsed Holds delimiter actually used for reference
+ * @returns {Array<Array<String>>}
  */
 DSVToArray(str, delimiter := "", &delimiterUsed?) {
 	if (StrLen(delimiter) = 0) {

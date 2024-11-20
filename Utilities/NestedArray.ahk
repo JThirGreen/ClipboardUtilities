@@ -8,6 +8,95 @@
 class NestedArray extends Array {
 
 	/**
+	 * The flattened version of the array.
+	 * @template T
+	 * @type {Array<T>}
+	 */
+	Items {
+		get {
+			/** @type {Array<T>} */
+			flattened := ParseNestedArray(this)
+			return flattened
+
+			/**
+			 * @param {Array<T>} arr
+			 * @returns {Array<T>} Flattened version of array
+			 */
+			ParseNestedArray(arr) {
+				items := []
+				if (Type(arr) = Type(this)) {
+					arr := arr.AsArray()
+				}
+
+				length := 0
+				for item in arr {
+					if (item != this) {
+						if (item is Array) {
+							items.Push(ParseNestedArray(item)*)
+						}
+						else {
+							items.Push(item)
+						}
+					}
+				}
+				return items
+			}
+		}
+	}
+
+	/**
+	 * The flattened length of the array.
+	 * @type {Integer}
+	 */
+	TotalLength {
+		get {
+			return ParseNestedArray(this)
+
+			/**
+			 * @param {Array<T>} arr
+			 * @returns {Integer} Flattened length of array
+			 */
+			ParseNestedArray(arr) {
+				if (Type(arr) = Type(this)) {
+					arr := arr.AsArray()
+				}
+
+				length := 0
+				for item in arr {
+					if (item != this) {
+						length += (item is Array) ? ParseNestedArray(item) : 1
+					}
+				}
+				return length
+			}
+		}
+	}
+
+	__Enum(NumberOfVars) {
+		i := 1
+		EnumItems(&item) {
+			if (i > this.Length) {
+				return false
+			}
+			item := this[i++]
+			return true
+		}
+		EnumIndexAndItems(&index, &item) {
+			index := i
+			return EnumItems(&item)
+		}
+		EnumItemsFlattened(&index, &item, &array) {
+			index := i
+			if (i > this.TotalLength) {
+				return false
+			}
+			item := this.Get(i++, , &array)
+			return true
+		}
+		return (NumberOfVars = 1) ? EnumItems : EnumIndexAndItems
+	}
+
+	/**
 	 * Delete the value of the array element so that the index does not contain a value.
 	 * @param {Number} Index
 	 * @returns {Any} Deleted value
@@ -20,35 +109,41 @@ class NestedArray extends Array {
 
 	/**
 	 * Returns the value at a given flattened array index, or a default value.
+	 * @template T
 	 * @param {Number} Index
 	 * @param {T} Default
 	 * @param {VarRef<T>} itemArray
 	 */
 	Get(Index, Default?, &itemArray?) {
 		i := 0
-		if (ParseNestedArray(this, Index, &i, &foundItem, &itemArray))
+		if (ParseNestedArray(this, Index, &i, &foundItem, &itemArray)) {
 			return foundItem
+		}
 
 		defaultValue := ""
-		if (IsSet(Default))
+		if (IsSet(Default)) {
 			defaultValue := Default
-		else if (this.HasProp("Default"))
+		}
+		else if (this.HasProp("Default")) {
 			defaultValue := this.Default
+		}
 		return defaultValue
 
 		ParseNestedArray(arr, outerIndex, &outerOffset, &foundItem, &itemArray?) {
 			Loop arr.Length {
 				item := arr[A_Index]
 				if (item is Array) {
-					if (ParseNestedArray(item, outerIndex, &outerOffset, &foundItem, &itemArray))
+					if (ParseNestedArray(item, outerIndex, &outerOffset, &foundItem, &itemArray)) {
 						return true
+					}
 				}
 				else {
 					outerOffset++
 					if (outerIndex = outerOffset) {
 						foundItem := item
-						if (IsSetRef(&itemArray))
+						if (IsSetRef(&itemArray)) {
 							itemArray := arr
+						}
 						return true
 					}
 				}
@@ -94,26 +189,32 @@ class NestedArray extends Array {
 	 */
 	PopItem() {
 		item
-		if (!this.Length)
+		if (!this.Length) {
 			return
+		}
 		else if (this[-1] is Array) {
 			parentArray := this[-1]
 			if (!parentArray.Length) {
 				this.Pop()
-				if (this.Length)
+				if (this.Length) {
 					return this.PopItem()
+				}
 				return
 			}
-			else if (Type(parentArray) = Type(this))
+			else if (Type(parentArray) = Type(this)) {
 				item := parentArray.PopItem()
-			else
+			}
+			else {
 				item := parentArray.Pop()
-			if (!parentArray.Length)
+			}
+			if (!parentArray.Length) {
 				this.Pop()
+			}
 			return item
 		}
-		else
+		else {
 			return this.Pop()
+		}
 	}
 
 	/**
@@ -140,8 +241,9 @@ class NestedArray extends Array {
 				needCleaning := (needCleaning || !relativeDetails.Array.Length)
 				toRemove -= removed
 			}
-			if (needCleaning)
+			if (needCleaning) {
 				this.Clean()
+			}
 		}
 		else {
 			super.RemoveAt(Index)
@@ -159,8 +261,9 @@ class NestedArray extends Array {
 		 */
 		CleanNestedArray(arr) {
 			Loop arr.Length {
-				if (arr.Length < A_Index)
+				if (arr.Length < A_Index) {
 					return
+				}
 			
 				item := arr[A_Index]
 				if (item is Array) {
@@ -170,8 +273,9 @@ class NestedArray extends Array {
 
 					if (item.Length = 0) {
 						arr.RemoveAt(A_Index)
-						if (arr.Length < A_Index)
+						if (arr.Length < A_Index) {
 							return
+						}
 						A_Index--
 					}
 				}
@@ -182,12 +286,13 @@ class NestedArray extends Array {
 	/**
 	 * Determines and returns absolute coordinates of element based on its flattend array index
 	 * @param {Integer} Index Flattened array index
-	 * @returns {Array} 
+	 * @returns {Array<Integer>}
 	 */
 	GetCoordsFromIndex(Index) {
 		i := 0
-		if (ParseNestedArray(this, Index, &i, &coords))
+		if (ParseNestedArray(this, Index, &i, &coords)) {
 			return coords
+		}
 
 		return []
 
@@ -217,7 +322,7 @@ class NestedArray extends Array {
 	/**
 	 * Finds element based on flattened index and returns its parent array along with some other relevant information
 	 * @param {Integer} Index Flattened array index
-	 * @returns {Object: {Array: {Array}, Index: {Integer}, Coords: {Array}, IsLast: {true|false}}}
+	 * @returns {RelativeArray}
 	 */
 	GetRelativeArrayAndIndex(Index) {
 		coords := this.GetCoordsFromIndex(Index)
@@ -239,62 +344,27 @@ class NestedArray extends Array {
 		}
 	}
 
-	__Enum(NumberOfVars) {
-		i := 1
-		EnumItems(&item) {
-			if (i > this.Length)
-				return false
-			item := this[i++]
-			return true
-		}
-		EnumIndexAndItems(&index, &item) {
-			index := i
-			return EnumItems(&item)
-		}
-		EnumItemsFlattened(&index, &item, &array) {
-			index := i
-			if (i > this.TotalLength)
-				return false
-			item := this.Get(i++, , &array)
-			return true
-		}
-		return (NumberOfVars = 1) ? EnumItems : EnumIndexAndItems
-	}
-
-	/**
-	 * Retrieve the flattened length of the array.
-	 */
-	TotalLength {
-		get {
-			return ParseNestedArray(this)
-
-			ParseNestedArray(arr) {
-				if (Type(arr) = Type(this))
-					arr := arr.Array
-
-				length := 0
-				for item in arr {
-					if (item != this)
-						length += (item is Array) ? ParseNestedArray(item) : 1
-				}
-				return length
-			}
-		}
-	}
-
 	/**
 	 * Return an {@link Array} only copy of this {@link NestedArray}
-	 * @type {Array<T>}
+	 * @returns {Array<T>}
 	 */
-	Array {
-		get {
-			cloneArray := []
-			Loop super.Length {
-				item := super[A_Index]
-				if (item != this)
-					cloneArray.Push((Type(item) = Type(this)) ? item.Array : item)
+	AsArray() {
+		cloneArray := []
+		Loop super.Length {
+			item := super[A_Index]
+			if (item != this) {
+				cloneArray.Push((Type(item) = Type(this)) ? item.AsArray() : item)
 			}
-			return cloneArray
 		}
+		return cloneArray
 	}
 }
+
+/**
+ * @typedef {{
+ *     Array: Array<T>,
+ *     Index: Integer,
+ *     Coords: Array,
+ *     IsLast: true|false,
+ * }} RelativeArray
+ */

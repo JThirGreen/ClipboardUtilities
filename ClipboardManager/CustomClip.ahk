@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#Include ..\Utilities\General.ahk
 #Include ..\Utilities\TextTools.ahk
 #Include ..\Utilities\JSON.ahk
 #Include ..\Utilities\Clipboard.ahk
@@ -6,6 +7,30 @@
 #Include ..\MenuManager\main.ahk
 
 class CustomClip {
+	/**
+	 * Raw clip content
+	 * @type {ClipboardAll}
+	 */
+	_clip := unset
+
+	/**
+	 * Extension used for if it has been saved to a file
+	 * @type {String}
+	 */
+	_extension := "clip"
+
+	/**
+	 * Name of clip and used for if it has been saved to a file
+	 * @type {String}
+	 */
+	_name := ""
+
+	/**
+	 * Title generated based on content
+	 * @type {String}
+	 */
+	_title := unset
+
 	/**
 	 * Type of content in this clip
 	 * @type {String}
@@ -19,40 +44,22 @@ class CustomClip {
 	_value := unset
 
 	/**
-	 * Raw clip content
-	 * @type {ClipboardAll}
-	 */
-	_clip := unset
-
-	/**
-	 * Title generated based on content
-	 * @type {String}
-	 */
-	_title := unset
-
-	/**
 	 * Record of when object was created
 	 * @type {String}
 	 */
 	createdOn := A_Now
 
 	/**
-	 * Name of clip and used for if it has been saved to a file 
-	 * @type {String}
-	 */
-	name := ""
-
-	/**
 	 * File path of clip if it has been saved to a file 
 	 * @type {String}
 	 */
-	SavedAt := ""
+	savedAt := ""
 
 	/**
 	 * Type of transformation to apply in certain scenarios
 	 * @type {String}
 	 */
-	TfMode := ""
+	tfMode := ""
 
 	/**
 	 * @param {Any} content Clip content
@@ -64,7 +71,7 @@ class CustomClip {
 		if (IsSet(clip)) {
 			this._clip := clip
 		}
-		this.TfMode := tfMode
+		this.tfMode := tfMode
 		if (datatype = "json") {
 			this.fromJSON(content)
 		}
@@ -73,53 +80,6 @@ class CustomClip {
 			this.value := content
 		}
 	}
-
-	/**
-	 * @type {String}
-	 */
-	valueFilePath => this.filePath . StrReplace(this.name, ".clip", ".txt")
-
-	/**
-	 * Clip content
-	 * @type {String|ClipboardAll}
-	 */
-	value {
-		get {
-			if (!this.HasOwnProp("_value")) {
-				if (this._type = "text" && StrLen(this.valueFilePath) > 0 && FileExist(this.valueFilePath)) {
-					this._value := FileRead(this.valueFilePath)
-				}
-				else if (this._type = "binary") {
-					this._value := this.clip
-				}
-				else {
-					return ""
-				}
-			}
-			return this._value
-		}
-		set => this._value := value
-	}
-
-	/**
-	 * Title generated based on content
-	 * @type {String}
-	 */
-	title {
-		get {
-			if (!this.HasOwnProp("_title")) {
-				/** @type {TextTrimmer} */
-				clipMenuText := TextTrimmer((this._type = "text") ? TextTools.CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
-				this._title := clipMenuText.Value
-			}
-			return this._title
-		}
-	}
-
-	/**
-	 * @type {String}
-	 */
-	clipFilePath => this.filePath . this.name
 
 	/**
 	 * Raw clip content
@@ -142,6 +102,11 @@ class CustomClip {
 	}
 
 	/**
+	 * @type {String}
+	 */
+	clipFilePath => this.filePath . this.fileName
+
+	/**
 	 * The content of this clip as it would be pasted
 	 * @type {String|ClipboardAll}
 	 */
@@ -160,35 +125,40 @@ class CustomClip {
 	}
 
 	/**
-	 * Type of content in this clip
 	 * @type {String}
 	 */
-	type {
+	fileName {
 		get {
-			if (!StrLen(this._type) && this.clip = "") {
-				return "text"
+			fileName := this._name
+			if (StrLen(this._name) > 0 && StrLen(this._extension) > 0) {
+				fileName .= "." . this._extension
 			}
-			else {
-				return this._type
-			}
+			return fileName
+		}
+		set {
+			this.name := Value
 		}
 	}
 
 	/**
-	 * Text content of clip
-	 * 
-	 * Certain transformations may be applied based on TfMode
 	 * @type {String}
 	 */
-	text {
+	filePath => (StrLen(this.fileName) > 0 && StrLen(this.savedAt) > 0) ? (this.savedAt . "\") : ""
+
+	name {
 		get {
-			if (this.type = "text") {
-				if (this.TfMode = "Trim") {
-					return Trim(this.value)
+			return this._name
+		}
+		set {
+			if (GetFilePathComponents(Value, &components)) {
+				this._name := components.name
+				if (StrLen(components.extension) > 0) {
+					this._extension := components.extension
 				}
-				return this.value
 			}
-			return ""
+			else {
+				this._name := Value
+			}
 		}
 	}
 
@@ -219,9 +189,79 @@ class CustomClip {
 	}
 
 	/**
+	 * Text content of clip
+	 * 
+	 * Certain transformations may be applied based on tfMode
 	 * @type {String}
 	 */
-	filePath => (StrLen(this.name) > 0 && StrLen(this.SavedAt) > 0) ? (this.SavedAt . "\") : ""
+	text {
+		get {
+			if (this.type = "text") {
+				if (this.tfMode = "Trim") {
+					return Trim(this.value)
+				}
+				return this.value
+			}
+			return ""
+		}
+	}
+
+	/**
+	 * Title generated based on content
+	 * @type {String}
+	 */
+	title {
+		get {
+			if (!this.HasOwnProp("_title")) {
+				/** @type {TextTrimmer} */
+				clipMenuText := TextTrimmer((this._type = "text") ? TextTools.CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
+				this._title := clipMenuText.Value
+			}
+			return this._title
+		}
+	}
+
+	/**
+	 * Type of content in this clip
+	 * @type {String}
+	 */
+	type {
+		get {
+			if (!StrLen(this._type) && this.clip = "") {
+				return "text"
+			}
+			else {
+				return this._type
+			}
+		}
+	}
+
+	/**
+	 * Clip content
+	 * @type {String|ClipboardAll}
+	 */
+	value {
+		get {
+			if (!this.HasOwnProp("_value")) {
+				if (this._type = "text" && StrLen(this.valueFilePath) > 0 && FileExist(this.valueFilePath)) {
+					this._value := FileRead(this.valueFilePath)
+				}
+				else if (this._type = "binary") {
+					this._value := this.clip
+				}
+				else {
+					return ""
+				}
+			}
+			return this._value
+		}
+		set => this._value := value
+	}
+
+	/**
+	 * @type {String}
+	 */
+	valueFilePath => this.filePath . this.name . ".txt"
 
 	/**
 	 * Checks if contained clip is empty
@@ -265,8 +305,8 @@ class CustomClip {
 	 * If large text content exists, then save to seperate file
 	 * @param {String} savePath File path to save clip contents to
 	 */
-	Save(savePath := this.SavedAt) {
-		this.SavedAt := savePath
+	Save(savePath := this.savedAt) {
+		this.savedAt := savePath
 		if (this.content is Buffer && StrLen(this.clipFilePath) > 0) {
 			FileAppend(this.content, this.clipFilePath)
 		}

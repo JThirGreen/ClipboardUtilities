@@ -49,8 +49,9 @@ class ClipArray {
 	 */
 	clips {
 		get {
-			if (!this._clips.Length)
+			if (!this._clips.Length) {
 				this.AppendClipboard()
+			}
 			return this._clips
 		}
 	}
@@ -92,13 +93,14 @@ class ClipArray {
 
 	/**
 	 * Parsed result of contents of primary clip file
-	 * @type {Map|String}
+	 * @type {ClipFile|String}
 	 */
 	RootFileContents {
 		get {
 			fileContents := JSON.parse(FileRead(this.RootFile))
-			if (fileContents = "")
+			if (fileContents = "") {
 				MsgBox("Failed to parse contens of `"" . this.RootFile . "`"")
+			}
 			return fileContents
 		}
 	}
@@ -137,8 +139,9 @@ class ClipArray {
 		 * @returns {true|false}
 		 */
 		EnumClips(&clip) {
-			if (i > this.TotalLength)
+			if (i > this.TotalLength) {
 				return false
+			}
 			/** @type {CustomClip} */
 			clip := this[i++]
 			return true
@@ -195,8 +198,9 @@ class ClipArray {
 	Clear(full := false) {
 		this._clips := NestedArray()
 		this.selectedIdx := -1
-		if (full)
+		if (full) {
 			this.Category := ""
+		}
 	}
 
 	/**
@@ -255,8 +259,9 @@ class ClipArray {
 		indexToRemove := selectIdx + indexOffset
 		if (indexToRemove > 0 && indexToRemove <= this.TotalLength) {
 			this.RemoveAt(indexToRemove)
-			if (selectIdx > indexToRemove)
-				selectIdx-- 
+			if (selectIdx > indexToRemove) {
+				selectIdx--
+			}
 			this.Select(Min(selectIdx, this.TotalLength))
 		}
 	}
@@ -292,13 +297,16 @@ class ClipArray {
 	 * false: Update selected index and apply {@link CustomClip} clip
 	 */
 	Select(index, soft := false) {
-		if (this.TotalLength = 0)
+		if (this.TotalLength = 0) {
 			return
+		}
 		this.selectedIdx := Mod(index, this.TotalLength)
-		if (this.selectedIdx = 0)
+		if (this.selectedIdx = 0) {
 			this.selectedIdx := this.TotalLength
-		if (!soft)
+		}
+		if (!soft) {
 			this.Apply()
+		}
 	}
 
 	/**
@@ -349,14 +357,16 @@ class ClipArray {
 		if (this.selected = "") {
 			return
 		}
-		if (index < 0)
+		if (index < 0) {
 			this.selected.Paste()
+		}
 		else if (select) {
 			this.Select(index)
 			this.selected.Paste()
 		}
-		else
+		else {
 			this[index].Paste()
+		}
 	}
 
 	/**
@@ -365,8 +375,9 @@ class ClipArray {
 	 */
 	Paste(mode) {
 		tempStr := this.ToString(mode)
-		if (StrLen(tempStr))
+		if (StrLen(tempStr)) {
 			PasteValue(tempStr)
+		}
 	}
 
 	/**
@@ -400,15 +411,19 @@ class ClipArray {
 		}
 
 		newFileNameList := []
-		newFileList := toFileListNew(this._clips.Array)
+		/** @type {ClipFileContent} */
+		newFileList := toFileListNew(this._clips.AsArray())
+		/** @type {ClipFile} */
 		newJson := JSON.stringify({category:this.Category, files: newFileList})
 
 		; If JSON already exists, then delete any *.clip that has been removed from it
 		if (FileExist(this.RootFile)) {
+			/** @type {ClipFile} */
 			clipData := this.RootFileContents
 			if (clipData = "") {
 				return
 			}
+			/** @type {ClipFileContent} */
 			oldFileList := clipData["files"]
 			if (oldFileList is Array) {
 				cleanFileListOld(oldFileList)
@@ -421,6 +436,11 @@ class ClipArray {
 		FileAppend(newJson, this.RootFile)
 		return
 
+		/**
+		 * 
+		 * @param {Array<CustomClip>} fromArray 
+		 * @returns {ClipFileContent} 
+		 */
 		toFileListNew(fromArray) {
 			fileList := []
 			for item in fromArray {
@@ -437,13 +457,13 @@ class ClipArray {
 					/** @type {CustomClip} */
 					clip := item,
 					fileName := ""
-					if (StrLen(clip.name) > 0) {
-						fileName := clip.name
+					if (StrLen(clip.fileName) > 0) {
+						fileName := clip.fileName
 					}
 					else {
 						baseClipName := this.FileName . "_" . clip.createdOn
 						fileName := nextValidFileName(baseClipName, "clip")
-						clip.name := fileName
+						clip.fileName := fileName
 						clip.Save(this.FolderPath)
 					}
 					newFileNameList.Push(fileName)
@@ -533,8 +553,8 @@ class ClipArray {
 				else {
 					clip := CustomClip(clipFile["content"], "json")
 					if (StrLen(clipFile["name"]) > 0) {
-						clip.name := clipFile["name"]
-						clip.SavedAt := this.FolderPath
+						clip.fileName := clipFile["name"]
+						clip.savedAt := this.FolderPath
 					}
 					clipsArray.Push(clip)
 				}
@@ -554,8 +574,35 @@ class ClipArray {
 		this.Clear()
 		this.SaveToFolder()
 
-		if (FileExist(this.RootFile))
+		if (FileExist(this.RootFile)) {
 			FileDelete(this.RootFile)
+		}
+	}
+
+	/**
+	 * Clean folder by removing files found for this clip array that have no references to them
+	 */
+	CleanFolder() {
+		this.SaveToFolder()
+
+		Loop Files this.FolderPath . "\" . this.FileName . "_*" {
+			if (A_LoopFileExt = "clip" || A_LoopFileExt = "txt") {
+				GetFilePathComponents(A_LoopFileName, &components)
+				clipName := components.name
+				refFound := false
+				for item in this.clips.Items {
+					/** @type {CustomClip} */
+					clip := item
+					if (clip.name = clipName) {
+						refFound := true
+						break
+					}
+				}
+				if (!refFound) {
+					FileDelete(A_LoopFileFullPath)
+				}
+			}
+		}
 	}
 
 	/**
@@ -649,15 +696,17 @@ class ClipArray {
 					clipStr := Trim(clipStr)
 				}
 				if (StrLen(clipStr)) {
-					if (StrLen(cbArrayStr) > 1)
+					if (StrLen(cbArrayStr) > 1) {
 						cbArrayStr .= separator
+					}
 					cbArrayStr .= clipStr
 				}
 			}
 			return cbArrayStr
 		}
-		else
-			return Array2String(this._clips, separator)
+		else {
+			return Array2String(this._clips.AsArray(), separator)
+		}
 	}
 
 	ReloadToolTip(headerTxt := "") {
@@ -787,3 +836,25 @@ class ClipArray {
 	}
 }
 
+
+/**
+ * @typedef {{
+ *     category: String,
+ *     files: ClipFileContent
+ * }} ClipFile
+ */
+
+/**
+ * @typedef {Array<ClipFileContent|ClipFileArrayContent>} ClipFileContent
+ */
+
+/**
+ * @typedef {{
+ *     name: String,
+ *     content: {
+ *         _type: String,
+ *         createdOn: Number,
+ *         value: String
+ *     }
+ * }} ClipFileArrayContent
+ */

@@ -74,6 +74,55 @@ GetDataType(var) {
 }
 
 /**
+ * Parse folder path, file name, and file extension from full file name
+ * @param {String} filePath Full file path
+ * @param {VarRef<{Object {path:String, name:String, extension:String}}>} components Reference to resulting components
+ * @returns {true|false}
+ */
+GetFilePathComponents(filePath, &components) {
+	RegExMatch(filePath, "S)(?:(?<path>.*)\\)?(?<name>[^\\]*?)(?:\.(?<ext>[^.]+))?$", &filePathMatches)
+	components := {
+		path: filePathMatches["path"],
+		name: filePathMatches["name"],
+		extension: filePathMatches["ext"]
+	}
+	return (StrLen(filePathMatches["name"]) > 0)
+}
+
+/**
+ * Checks if shortcut to script exists in startup folder
+ * @param {VarRef<String>} shortcutPath Optional VarRef for returning full file path of found shortcut
+ * @param {VarRef<String>} outDir Optional VarRef for returning shortcut's working directory
+ * @returns {true|false}
+ */
+HasStartUpShortcut(&shortcutPath := "", &outDir := "") {
+	Loop Files A_Startup . "\*.lnk" {
+		FileGetShortcut(A_LoopFileFullPath, &OutTarget, &OutDir, &OutArgs, &OutDescription, &OutIcon, &OutIconNum, &OutRunState)
+		if (OutTarget = A_ScriptFullPath) {
+			shortcutPath := A_LoopFileFullPath
+			return true
+		}
+	}
+	return false
+}
+
+/**
+ * Checks if number is odd using bitwise-and
+ * @param {Integer} num Number to check
+ */
+IsOdd(num) {
+	return (num & 1)
+}
+
+/**
+ * Checks if number is even using {@link IsOdd()}
+ * @param {Integer} num Number to check
+ */
+IsEven(num) {
+	return !IsOdd(num)
+}
+
+/**
  * Return leading characters matching charArray from txt
  * @param {String} txt String to parse
  * @param {Array} charArray Array of characters to match against
@@ -98,38 +147,4 @@ SubstringLeading(txt, charArray) {
 		}
 	}
 	return leadingChars
-}
-
-/**
- * Checks if number is odd using bitwise-and
- * @param {Integer} num Number to check
- */
-IsOdd(num) {
-	return (num & 1)
-}
-
-/**
- * Checks if number is even using {@link IsOdd()}
- * @param {Integer} num Number to check
- */
-IsEven(num) {
-	return !IsOdd(num)
-}
-
-
-/**
- * Checks if shortcut to script exists in startup folder
- * @param {VarRef<String>} shortcutPath Optional VarRef for returning full file path of found shortcut
- * @param {VarRef<String>} outDir Optional VarRef for returning shortcut's working directory
- * @returns {true|false}
- */
-HasStartUpShortcut(&shortcutPath := "", &outDir := "") {
-	Loop Files A_Startup . "\*.lnk" {
-		FileGetShortcut(A_LoopFileFullPath, &OutTarget, &OutDir, &OutArgs, &OutDescription, &OutIcon, &OutIconNum, &OutRunState)
-		if (OutTarget = A_ScriptFullPath) {
-			shortcutPath := A_LoopFileFullPath
-			return true
-		}
-	}
-	return false
 }

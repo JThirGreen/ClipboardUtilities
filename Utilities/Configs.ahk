@@ -7,7 +7,7 @@
  */
 global ScriptConfigs := Configurations()
 
-class Configurations extends ConfigurationFile{
+class Configurations extends ConfigurationFile {
 
 	/**
 	 * If configuration file is not in the default location, then this holds the new location in a separate config at the default location
@@ -22,10 +22,12 @@ class Configurations extends ConfigurationFile{
 		if (IsSet(fileName)) {
 			this._baseConfigs := ConfigurationFile(baseConfigName, baseConfigPath)
 			this._baseConfigs.SetConfigRoot(category)
-			if (IsSet(defaultPath))
+			if (IsSet(defaultPath)) {
 				super.__New(fileName, this._baseConfigs.Get("configsFilePath", category, defaultPath), defaultPath)
-			else
+			}
+			else {
 				super.__New(fileName, this.FilePath, category)
+			}
 		}
 		else if (IsSet(category)) {
 				super.__New(baseConfigName, baseConfigPath, category)
@@ -115,6 +117,12 @@ class ConfigurationFile {
 	_configStartIn := ""
 
 	/**
+	 * Flag for recording if change has occurred since save
+	 * @type {true|false}
+	 */
+	_changedSinceLastSave := false
+
+	/**
 	 * Load configuration file and create it if nonexistent
 	 * @param {String} name Name to use for config file
 	 */
@@ -143,7 +151,6 @@ class ConfigurationFile {
 		if (this._configFileName != "") {
 			if (!FileExist(this.FileName)) {
 				if (FileExist(this.BackupFileName)) {
-					
 					FileMove(this.BackupFileName, this.FileName, true)
 				}
 				else {
@@ -163,21 +170,25 @@ class ConfigurationFile {
 		}
 		set {
 			config := this.GetConfigFromPath(name, true)
-			if (!(config = "" || config is Map))
+			if (!(config = "" || config is Map)) {
 				%config% := value
+			}
 		}
 	}
 
 	__Get(Key, Params) {
-		if (Params.Length && IsObject(this[Key]))
+		if (Params.Length && IsObject(this[Key])) {
 			return this[Key][Params[1]]
-		else
+		}
+		else {
 			return this[Key]
+		}
 	}
 	__Set(Key, Params, Value) {
 		if (!this.HasProp(Key) && !this.ConfigExists(Key)) {
-			if (!Params.Length)
+			if (!Params.Length) {
 				this.DefineProp(Key, {Value:Value})
+			}
 		}
 		else if (Params.Length) {
 			name := Key
@@ -186,8 +197,9 @@ class ConfigurationFile {
 			}
 			this[name] := Value
 		}
-		else
+		else {
 			this[Key] := Value
+		}
 	}
 
 	/**
@@ -223,24 +235,31 @@ class ConfigurationFile {
 	 * Save current configuration values to configuration file
 	 */
 	Save() {
-		if (this._progressState = 'error')
+		if (this._progressState = 'error') {
 			return
-		jsonStr := JSON.stringify(this._configMap)
-		if (FileExist(this.FileName))
-			FileMove(this.FileName, this.BackupFileName, true)
-		FileAppend(jsonStr, this.FileName)
-		ConfigurationFile._configVersion++
-		this._configVersion := ConfigurationFile._configVersion
+		}
+		if (this._changedSinceLastSave) {
+			jsonStr := JSON.stringify(this._configMap)
+			if (FileExist(this.FileName)) {
+				FileMove(this.FileName, this.BackupFileName, true)
+			}
+			FileAppend(jsonStr, this.FileName)
+			ConfigurationFile._configVersion++
+			this._configVersion := ConfigurationFile._configVersion
+		}
+		this._changedSinceLastSave := false
 	}
 
 	/**
 	 * Load configuration values from configuration file
 	 */
 	Load() {
-		if (this._progressState = 'error')
+		if (this._progressState = 'error') {
 			return
+		}
 		this._configVersion := ConfigurationFile._configVersion
 		this._configMap := JSON.parse(FileRead(this.FileName))
+		this._changedSinceLastSave := false
 	}
 
 	/**
@@ -251,15 +270,18 @@ class ConfigurationFile {
 	 * @returns {String|Number|Array} Value found at config path
 	 */
 	Get(name, default := "", saveIfDefault := false) {
-		if (this._progressState = 'error')
+		if (this._progressState = 'error') {
 			return default
+		}
 
 		this.VersionCheck()
-		if (this.ConfigExists(name))
+		if (this.ConfigExists(name)) {
 			return this[name]
+		}
 		else {
-			if (saveIfDefault)
+			if (saveIfDefault) {
 				this.SetConfigFromPath(name, default, true)
+			}
 			return default
 		}
 	}
@@ -285,8 +307,9 @@ class ConfigurationFile {
 	 * @returns {true|false}
 	 */
 	ConfigExists(name) {
-		if ((this.HasProp("_progressState") && this._progressState = 'error') || !this.HasProp("_configMap"))
+		if ((this.HasProp("_progressState") && this._progressState = 'error') || !this.HasProp("_configMap")) {
 			return false
+		}
 		
 		conf := this.GetConfigFromPath(name)
 		return !(conf = "" || %conf% = "")
@@ -316,11 +339,12 @@ class ConfigurationFile {
 	 * Get reference to config found at a config path
 	 * @param {String} path Config path to search for
 	 * @param {true|false} createIfNotFound If 'true' and not found, then create config at config path
-	 * @returns {VarRef|String} Reference to config if found or empty string if not
+	 * @returns {VarRef<Map>|String} Reference to config if found or empty string if not
 	 */
 	GetConfigFromPath(path, createIfNotFound := false, &configFullPath?) {
-		if (!this.HasProp("_configMap") || !this.HasProp("_configStartIn"))
+		if (!this.HasProp("_configMap") || !this.HasProp("_configStartIn")) {
 			return ""
+		}
 
 		mapPoint := this._configMap
 		configPath := this._configStartIn . ((this._configStartIn && path) ? "." : "") . path
@@ -328,16 +352,21 @@ class ConfigurationFile {
 		if (StrLen(configPath)) {
 			steps := StrSplit(configPath, ".")
 			for step in steps {
-				if (!(mapPoint is Map))
+				if (!(mapPoint is Map)) {
 					return ""
+				}
 				
-				if (createIfNotFound && !mapPoint.Has(step))
+				if (createIfNotFound && !mapPoint.Has(step)) {
 					mapPoint[step] := Map()
+					this._changedSinceLastSave := true
+				}
 				
-				if (mapPoint.Has(step))
+				if (mapPoint.Has(step)) {
 					mapPoint := (mapPoint[step])
-				else
+				}
+				else {
 					return ""
+				}
 			}
 		}
 		if (IsSet(configFullPath)) {
@@ -353,20 +382,26 @@ class ConfigurationFile {
 	 * @param {true|false} saveToFile If 'false', then modify the config value without updating configuration file
 	 */
 	SetConfigFromPath(path, value, saveToFile := true) {
-		if (path = "")
+		if (path = "") {
 			return
+		}
 
-		steps := StrSplit(path, ".")
-
-		configPath := ""
+		steps := StrSplit(path, "."),
+		configPath := "",
 		configName := ""
 		for step in steps {
-			if (StrLen(configPath))
+			if (StrLen(configPath)) {
 				configPath .= "."
+			}
 			configPath .= configName
 			configName := step
 		}
-		%this.GetConfigFromPath(configPath, true)%.Set(configName, value)
+		/** @type {Map} */
+		config := %this.GetConfigFromPath(configPath, true)%
+		if (config.Has(configName) && config[configName] != value) {
+			config.Set(configName, value)
+			this._changedSinceLastSave := true
+		}
 		if (saveToFile) {
 			this.Save()
 		}
@@ -390,8 +425,9 @@ class ConfigurationFile {
 	 */
 	SetConfigRoot(path) {
 		confFromPath := this.GetConfigFromPath(path, true)
-		if (%confFromPath% is Map)
+		if (%confFromPath% is Map) {
 			this._configStartIn := path
+		}
 	}
 
 	/**
@@ -410,9 +446,11 @@ class ConfigurationFile {
 	 */
 	AddConfigAction(path, callback) {
 		fullConfigPath := this.GetFullConfigPath(path)
-		if (callback is Func)
+		if (callback is Func) {
 			ConfigurationFile._configActions.Set(fullConfigPath, callback)
-		else
+		}
+		else {
 			MsgBox("Config action callback must be function")
+		}
 	}
 }

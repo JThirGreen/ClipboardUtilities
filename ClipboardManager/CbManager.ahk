@@ -90,6 +90,7 @@ class ClipboardManager {
 		this.SelectCbArray(0, false)
 		this.CbArrayMap[0].Category := "Default"
 		this.LoadCbArrays()
+		this.CleanFiles()
 		this.configs.AddConfigAction("useClipFiles", ObjBindMethod(this, "MarkChanged"))
 		this.configs.AddConfigAction("menuItemsCount", ObjBindMethod(this, "MarkChanged"))
 	}
@@ -97,6 +98,15 @@ class ClipboardManager {
 	Init() {
 		if (!this.CbArray.Length) {
 			this.LoadFromClipboard()
+		}
+	}
+
+	/**
+	 * If saved to disk, then check each clip list and delete any *.clip files not found in any
+	 */
+	CleanFiles() {
+		For name, cbArray in this.CbArrayMap {
+			cbArray.CleanFolder()
 		}
 	}
 
@@ -122,8 +132,9 @@ class ClipboardManager {
 			Loop 9 {
 				if (!this.CbArrayMap.Has(A_Index)) {
 					cbArray := ClipArray(this.UseClipFiles, A_Index)
-					if (cbArray.LoadFromFolder())
+					if (cbArray.LoadFromFolder()) {
 						this.CbArrayMap.Set(A_Index, cbArray)
+					}
 				}
 			}
 		}
@@ -169,6 +180,9 @@ class ClipboardManager {
 
 	/**
 	 * Remove all stored {@link CustomClip} clips of selected {@link ClipArray} and reset selected index
+	 * @param {String} name Name of {@link ClipArray} to clear
+	 * 
+	 * If omitted or blank, then the selected {@link ClipArray} is cleared instead
 	 */
 	Clear(name?) {
 		if (IsSet(name) && name != this.CbArray.Name && this.CbArrayMap.Has(name)) {
