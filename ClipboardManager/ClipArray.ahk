@@ -746,10 +746,7 @@ class ClipArray {
 
 		if (this._toolTipList.Length = 0) {
 			this._toolTipList.Reset()
-			if (IsSet(headerTxt)) {
-				this._toolTipList.Add(headerTxt)
-			}
-			this._toolTipList.Push("", selText, "right", tipText)
+			this._toolTipList.Push("", headerTxt, "", selText, "right", tipText)
 		}
 		else {
 			this._toolTipList.Update(headerTxt ?? true, selText, tipText)

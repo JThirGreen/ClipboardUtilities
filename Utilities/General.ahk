@@ -74,6 +74,60 @@ GetDataType(var) {
 }
 
 /**
+ * Get monitor number that currently contains the given coords and optionally retrieves its bounding coordinates
+ * @param {Integer} x
+ * @param {Integer} y
+ * @param {VarRef<Integer>} dispLeft
+ * @param {VarRef<Integer>} dispTop
+ * @param {VarRef<Integer>} dispRight
+ * @param {VarRef<Integer>} dispBottom
+ * @param {true|false} workAreaOnly If true, then get the bounding coordinates of the working area instead of the full display
+ * @returns {Integer}
+ */
+GetDisplayFromCoords(x, y, dispLeft?, dispTop?, dispRight?, dispBottom?, workAreaOnly := false) {
+	monitorCount := MonitorGetCount()
+	if (monitorCount > 1) {
+		Loop monitorCount {
+			GetBoundingCoords(A_Index)
+			if (%dispLeft% <= x && x <= %dispRight% && %dispTop% <= y && y <= %dispBottom%) {
+				return A_Index
+			}
+		}
+	}
+	else {
+		if (IsSet(dispLeft) || IsSet(dispTop) || IsSet(dispRight) || IsSet(dispBottom)) {
+			GetBoundingCoords(1)
+		}
+		return 1
+	}
+	%dispLeft% := -1, %dispTop% := -1, %dispRight% := -1, %dispBottom% := -1
+	return -1
+
+	GetBoundingCoords(n) {
+		if (workAreaOnly) {
+			MonitorGetWorkArea(n, dispLeft?, dispTop?, dispRight?, dispBottom?)
+		}
+		else {
+			MonitorGet(n, dispLeft?, dispTop?, dispRight?, dispBottom?)
+		}
+	}
+}
+
+/**
+ * Get monitor number that currently contains the mouse cursor and optionally retrieves its bounding coordinates
+ * @param {VarRef<Integer>} dispLeft
+ * @param {VarRef<Integer>} dispTop
+ * @param {VarRef<Integer>} dispRight
+ * @param {VarRef<Integer>} dispBottom
+ * @param {true|false} workAreaOnly If true, then get the bounding coordinates of the working area instead of the full display
+ * @returns {Integer}
+ */
+GetDisplayFromMousePos(dispLeft?, dispTop?, dispRight?, dispBottom?, workAreaOnly := false) {
+	GetScreenPosMouse(&mouseX, &mouseY)
+	return GetDisplayFromCoords(mouseX, mouseY, dispLeft?, dispTop?, dispRight?, dispBottom?, workAreaOnly)
+}
+
+/**
  * Parse folder path, file name, and file extension from full file name
  * @param {String} filePath Full file path
  * @param {VarRef<{Object {path:String, name:String, extension:String}}>} components Reference to resulting components
@@ -87,6 +141,23 @@ GetFilePathComponents(filePath, &components) {
 		extension: filePathMatches["ext"]
 	}
 	return (StrLen(filePathMatches["name"]) > 0)
+}
+
+/**
+ * Get the screen position of the mouse cursor
+ * @param {VarRef<Integer>} mouseX
+ * @param {VarRef<Integer>} mouseY
+ * @returns {Integer}
+ */
+GetScreenPosMouse(mouseX, mouseY) {
+	mouseCoordMode := A_CoordModeMouse
+	if (mouseCoordMode != "Screen") {
+		CoordMode("Mouse", "Screen")
+	}
+	MouseGetPos(mouseX, mouseY)
+	if (mouseCoordMode != "Screen") {
+		CoordMode("Mouse", mouseCoordMode)
+	}
 }
 
 /**

@@ -1,4 +1,6 @@
 #Requires AutoHotkey v2.0
+#Include General.ahk
+#Include Time.ahk
 
 CoordMode("Mouse")
 CoordMode("ToolTip")
@@ -13,9 +15,16 @@ class ToolTipList {
 	 **/
 	ToolTips := [""]
 
+	Left := 0
+	Top := 0
+	Right := 0
+	Bottom := 0
+	Width => this.Right - this.Left
+	Height => this.Bottom - this.Top
+
 	/**
 	 * @param {String|Array<String>} content Content displayed in tooltip
-	 * @param {"top"|"left"|"right"|"bottom"} direction Direction to append content to if multiple are provided
+	 * @param {ToolTipDirection} direction Direction to append content to if multiple are provided
 	 */
 	__New(content?, direction?) {
 		if (IsSet(content)) {
@@ -83,7 +92,7 @@ class ToolTipList {
 	/**
 	 * Add new {@link ToolTipBox} to the list
 	 * @param {ToolTipBox|Array<ToolTipBox>|String|Array<String>} ttList New tool tip(s) to add
-	 * @param {"top"|"left"|"right"|"bottom"} direction Direction from previously added tool tip to display new one at
+	 * @param {ToolTipDirection} direction Direction from previously added tool tip to display new one at
 	 * @param {ToolTipBox} relativeTo Override to select tool tip to use as relative reference instead of previously added one
 	 */
 	Add(ttList, direction?, relativeTo?) {
@@ -112,7 +121,7 @@ class ToolTipList {
 
 	/**
 	 * Create and add tool tips from strings
-	 * @param {String} direction1 Direction from last added tool tip to display the next one in
+	 * @param {ToolTipDirection} direction1 Direction from last added tool tip to display the next one in
 	 * @param {String} tooltip1 String to create next tool tip from
 	 * @param {[String, String]} values Additional direction and text pairs to create tool tips from
 	 */
@@ -163,17 +172,20 @@ class ToolTipList {
 	}
 
 	Show(delay := 2000) {
-		isFirstShown := false
-		for tt in this.ToolTips {
-			if (IsSet(tt) && tt is ToolTipBox) {
-				if (!isFirstShown) {
-					isFirstShown := true
-					tt.Show(0, "mouse")
-				}
-				else {
-					tt.Show(0, "relativeTo")
-				}
-			}
+		local originX, originY,
+			realLeft, realTop, realRight, realBottom,
+			virtualLeft, virtualTop, virtualRight, virtualBottom,
+			mouseX, mouseY,
+			boundLeft, boundTop, boundRight, boundBottom
+		GetScreenPosMouse(&mouseX, &mouseY)
+		GetDisplayFromCoords(mouseX, mouseY, &boundLeft, &boundTop, &boundRight, &boundBottom, true)
+
+		displayTTs()
+
+		this.Left := virtualLeft - originX, this.Top := virtualTop - originY, this.Right := virtualRight - originX, this.Bottom := virtualBottom - originY,
+		realWidth := realRight - realLeft, realHeight := realBottom - realTop
+		if (this.Width != realWidth || this.Height != realHeight) {
+			displayTTs()
 		}
 
 		if (delay) {
@@ -182,6 +194,32 @@ class ToolTipList {
 				this._boundHideMethod := ObjBindMethod(this, "Hide", true)
 			}
 			SetTimer(this._boundHideMethod, delay)
+		}
+
+		displayTTs() {
+			minOriginX := boundLeft - this.Left,
+			minOriginY := boundTop - this.Top,
+			maxOriginX := boundRight - this.Right - 1,
+			maxOriginY := boundBottom - this.Bottom - 1,
+			originX := Max(minOriginX, Min(maxOriginX, mouseX)),
+			originY := Max(minOriginY, Min(maxOriginY, mouseY)),
+			isFirstShown := false
+			for tt in this.ToolTips {
+				if (IsSet(tt) && tt is ToolTipBox) {
+					if (!isFirstShown) {
+						isFirstShown := true,
+						tt.SetCoords(originX, originY)
+						tt.Show(0)
+						realLeft := tt.Left, realTop := tt.Top, realRight := tt.Right, realBottom := tt.Bottom,
+						virtualLeft := tt.VirtualLeft, virtualTop := tt.VirtualTop, virtualRight := tt.VirtualRight, virtualBottom := tt.VirtualBottom
+					}
+					else {
+						tt.Show(0, "relativeTo")
+						realLeft := Min(realLeft, tt.Left), realTop := Min(realTop, tt.Top), realRight := Max(realRight, tt.Right), realBottom := Max(realBottom, tt.Bottom),
+						virtualLeft := Min(virtualLeft, tt.virtualLeft), virtualTop := Min(virtualTop, tt.virtualTop), virtualRight := Max(virtualRight, tt.virtualRight), virtualBottom := Max(virtualBottom, tt.virtualBottom)
+					}
+				}
+			}
 		}
 	}
 
@@ -205,22 +243,12 @@ class ToolTipBox {
 	 * X coord of top-left corner
 	 * @type {Integer}
 	 */
-	X {
-		get {
-			this.SetCoords()
-			return this.HasOwnProp("_x") ? this._x : 0
-		}
-	}
+	X => this.HasOwnProp("_x") ? this._x : 0
 	/**
 	 * Y coord of top-left corner
 	 * @type {Integer}
 	 */
-	Y {
-		get {
-			this.SetCoords()
-			return this.HasOwnProp("_y") ? this._y : 0
-		}
-	}
+	Y => this.HasOwnProp("_y") ? this._y : 0
 	/**
 	 * Width of tool tip window
 	 * @type {Integer}
@@ -231,6 +259,26 @@ class ToolTipBox {
 	 * @type {Integer}
 	 */
 	Height => this.HasOwnProp("_height") ? this._height : 0
+	/**
+	 * Left bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	Left => this.X
+	/**
+	 * Top bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	Top => this.Y
+	/**
+	 * Right bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	Right => this.X + this.Width
+	/**
+	 * Bottom bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	Bottom => this.Y + this.Height
 	/**
 	 * Index of which tool tip to display as
 	 * @type {Integer}
@@ -249,6 +297,9 @@ class ToolTipBox {
 				this._width := 0
 				this._height := 0
 				this._content := value
+				if (this.IsShown) {
+					this.ShowNew()
+				}
 			}
 		}
 	}
@@ -256,7 +307,7 @@ class ToolTipBox {
 	 * Status of if tool tip is displayed or not
 	 * @type {true|false}
 	 */
-	IsShown := false
+	IsShown => !!WinExist("ahk_id " . this.Id)
 	/**
 	 * Flag to disable manual use of this.hide() for this tooltip
 	 * @type {true|false}
@@ -272,6 +323,37 @@ class ToolTipBox {
 	 * @type {"top"|"left"|"right"|"bottom"}
 	 */
 	RelativeDirection := "bottom"
+	
+	/**
+	 * Virtual X coordinate of top-left corner from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualX := 0
+	/**
+	 * Virtual Y coordinate of top-left corner from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualY := 0
+	/**
+	 * Virtual left bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualLeft => this.VirtualX
+	/**
+	 * Virtual top bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualTop => this.VirtualY
+	/**
+	 * Virtual right bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualRight => this.VirtualX + this.Width
+	/**
+	 * Virtual bottom bounding coordinate from multi-tooltip origin
+	 * @type {Integer}
+	 */
+	VirtualBottom => this.VirtualY + this.Height
 
 	/**
 	 * @param {String} content Content displayed in tooltip
@@ -293,6 +375,7 @@ class ToolTipBox {
 	 * @param {Integer|"mouse"} y New Y-coordinate
 	 */
 	SetCoords(x := "", y := "") {
+		changed := false
 		if (x = "mouse" || y = "mouse") {
 			MouseGetPos(&mouseX, &mouseY)
 			if (x = "mouse") {
@@ -303,10 +386,26 @@ class ToolTipBox {
 			}
 		}
 		if (IsInteger(x)) {
-			this._x := Number(x)
+			newX := Number(x),
+			changed |= this._x != newX,
+			this._x := newX
 		}
 		if (IsInteger(y)) {
-			this._y := Number(y)
+			newY := Number(y),
+			changed |= this._y != newY,
+			this._y := newY
+		}
+		if (changed) {
+			if (!(this.RelativeTo is ToolTipBox)) {
+				this.VirtualX := this._x,
+				this.VirtualY := this._y
+			}
+			if (this.IsShown) {
+				winDelay := A_WinDelay
+				SetWinDelay(0)
+				WinMove(this.X, this.Y, , , "ahk_id " . this.Id)
+				SetWinDelay(winDelay)
+			}
 		}
 	}
 
@@ -323,19 +422,23 @@ class ToolTipBox {
 				case "top":
 					success := this.Height > 0
 					if (success) {
-						this.SetCoords(this.RelativeTo.X, this.RelativeTo.Y - this.Height)
+						this.SetCoords(this.RelativeTo.Left, this.RelativeTo.Top - this.Height)
+						this.VirtualX := this.RelativeTo.VirtualLeft, this.VirtualY := this.RelativeTo.VirtualTop - this.Height
 					}
 				case "left":
 					success := this.Width > 0
 					if (success) {
-						this.SetCoords(this.RelativeTo.X - this.Width, this.RelativeTo.Y)
+						this.SetCoords(this.RelativeTo.Left - this.Width, this.RelativeTo.Top)
+						this.VirtualX := this.RelativeTo.VirtualLeft - this.Width, this.VirtualY := this.RelativeTo.VirtualTop
 					}
 				case "right":
 					success := true
-					this.SetCoords(this.RelativeTo.X + this.RelativeTo.Width, this.RelativeTo.Y)
+					this.SetCoords(this.RelativeTo.Right, this.RelativeTo.Top)
+					this.VirtualX := this.RelativeTo.VirtualRight, this.VirtualY := this.RelativeTo.VirtualTop
 				default: ; Defaults to "bottom"
 					success := true
-					this.SetCoords(this.RelativeTo.X, this.RelativeTo.Y + this.RelativeTo.Height)
+					this.SetCoords(this.RelativeTo.Left, this.RelativeTo.Bottom)
+					this.VirtualX := this.RelativeTo.VirtualLeft, this.VirtualY := this.RelativeTo.VirtualBottom
 			}
 		}
 		;MsgBox(direction . ": " . (success ? "Success" : "Fail"))
@@ -345,33 +448,34 @@ class ToolTipBox {
 	/**
 	 * Display this tool tip
 	 * @param {Integer} delay Delay (in ms) to auto hide tool tip
-	 * @param {""|"mouse"|"relativeTo"} relativePos Mode for what to update coordinates relative to 
+	 * @param {""|"mouse"|"relativeTo"} relativePos Mode for what to update coordinates relative to
+	 * @param {Array<Integer>} offset Optional offset to apply in format: [xOffset, yOffset]
 	 */
-	Show(delay := 2000, relativePos := "") {
+	Show(delay := 2000, relativePos := "", offset := [0,0]) {
 		/** @type {true|false} */
-		recalcCoords := false
+		recalcDimensions := false
 		switch relativePos {
 			case "":
 			case "mouse":
 				this.SetCoords("mouse","mouse")
 			case "relativeTo":
-				recalcCoords := !this.SetCoordsRelativeTo()
+				recalcDimensions := !this.SetCoordsRelativeTo()
 			default:
 				return
 		}
-		this.Id := ToolTip(this.Content, this.X, this.Y, this.Idx)
-		this.IsShown := true
+		if (IsSet(offset)) {
+			this._x += offset[1],
+			this._y += offset[2]
+		}
+		if (!this.IsShown) {
+			this.ShowNew()
+		}
 		try {
-			if (recalcCoords || this._width = 0 || this._height = 0) {
-				WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " . this.Id)
-				this._x := winX
-				this._y := winY
-				this._width := winW
-				this._height := winH
-				if (recalcCoords) {
-					this.SetCoordsRelativeTo()
-					this.Id := ToolTip(this.Content, this.X, this.Y, this.Idx)
-				}
+			WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " . this.Id)
+			recalcDimensions |= ((this.RelativeDirection = "left" && this._width != winW) || (this.RelativeDirection = "top" && this._height != winH)),
+			this._x := winX, this._y := winY, this._width := winW, this._height := winH
+			if (recalcDimensions) {
+				this.SetCoordsRelativeTo()
 			}
 		}
 		if (delay) {
@@ -383,9 +487,12 @@ class ToolTipBox {
 		}
 	}
 
+	ShowNew() {
+		this.Id := ToolTip(this.Content, this.X, this.Y, this.Idx)
+	}
+
 	Hide(force := false) {
-		if (!this.DelayOnly || force) {
-			this.IsShown := false
+		if (this.IsShown && (!this.DelayOnly || force)) {
 			ToolTip(, , , this.Idx)
 		}
 	}
@@ -415,3 +522,7 @@ AddToolTip(txt, delay := 2000, arrayMode := "down") {
 RemoveToolTip() {
 	ToolTip(, , , )
 }
+
+/**
+ * @typedef {"top"|"left"|"right"|"bottom"} ToolTipDirection
+ */
