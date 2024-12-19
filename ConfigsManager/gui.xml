@@ -1,6 +1,13 @@
 <Configs>
 	<Config Name="ClipboardManager">
 		<Property Name="useClipFiles" Type="Checkbox" Description="Persist clips by saving them to disk"></Property>
+		<Property Name="." Type="Link" Description="Open Folder" Position="Inline"></Property>
+		<Property Name="mainHotKey" Type="Radio" Description="Main hotkey for triggering clip selector">
+			<Options Type="Default">
+				<Option Value="^v" Text="Ctrl+V"></Option>
+				<Option Value="^+v" Text="Ctrl+Shift+V"></Option>
+			</Options>
+		</Property>
 		<Property Name="nativeHotKeyTimeout" Type="Dropdown" Description="Hold delay for certain hotkeys before disabling native behavior on release (in ms)">
 			<Options Type="Default">
 				<Option Value="0" Text="Disable"></Option>

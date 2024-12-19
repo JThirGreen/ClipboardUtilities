@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0
 #Include ..\Utilities\General.ahk
 #Include ..\Utilities\Array.ahk
+#Include ..\Utilities\TextTools.ahk
 #Include ..\Utilities\XML.ahk
 #Include ..\Utilities\Configs.ahk
 #Include ..\Utilities\Resource.ahk
@@ -47,9 +48,16 @@ class ConfigurationManager {
 				propDesc := property.getAttribute("Description")
 				addedProps := Map()
 				addedProps.Set("Note", property.getAttribute("Note"))
+				addedProps.Set("Position", property.getAttribute("Position"))
 				addedProps.Set("Options", CreateDDOptions(property))
 				configPath := (StrLen(configName) ? (configName . ".") : "") . propName
-				guiPosition := (this._controls.Count = 0) ? "xm" : "xs"
+				guiPosition := "xs"
+				if (this._controls.Count = 0) {
+					guiPosition := "xm"
+				}
+				else if (property.getAttribute("Position") = "Inline") {
+					guiPosition := "yp"
+				}
 				this.CreateControl(propName, propType, propDesc, configPath, guiPosition, addedProps)
 			}
 		}
@@ -148,7 +156,7 @@ class ConfigurationControl {
 	/** @type {Map<String, Any>} */
 	_addedProps := Map()
 
-	/** @type {Map<String, Gui.Control>} */
+	/** @type {Map<String, Gui.Control|Array<Gui.Control>>} */
 	_ctrlComponents := Map()
 
 	/** @type {Map<String, {x, y, width, height}>} */
@@ -169,9 +177,47 @@ class ConfigurationControl {
 
 	Title => (this._description != "") ? this._description : this._name
 
+	Value {
+		get {
+			value := 0
+			if (!this._ctrlComponents.Has("Input")) {
+				return ""
+			}
+			else if (this._ctrlComponents["Input"] is Array) {
+				for idx, input in this._ctrlComponents["Input"] {
+					if (input.Value = 1) {
+						value := idx
+						break
+					}
+				}
+			}
+			else {
+				value := this._ctrlComponents["Input"].Value
+			}
+			return value
+		}
+	}
+
 	Build() {
 		initialPos := this._guiPosition || "xs"
 		switch this._type, false {
+			case "Link":
+				this._gui.AddLink(initialPos, "<a id=`"" . this._name . "`">" . this.Title . "</a>").OnEvent("Click", openLink)
+				openLink(*) {
+					linkPath := this._name
+					if (TextTools.StartsWith(linkPath, "\")) {
+						linkPath := "C:" . linkPath
+					}
+					else if (!RegExMatch(linkPath, "i)^[A-Z]:\\")) {
+						linkPath := ScriptConfigs.FilePath . "\" . linkPath
+					}
+					if (DirExist(linkPath)) {
+						Run(linkPath)
+					}
+					else {
+						MsgBox("Directory could not be found:`r`n" . linkPath)
+					}
+				}
 			case "Number":
 				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos, this.Title))
 				this._ctrlComponents.Set("Input", this._gui.AddEdit("xp Section Number Right r1 w50"))
@@ -185,19 +231,31 @@ class ConfigurationControl {
 				this._blankDefault := 0
 				this._ctrlComponents["Input"].OnEvent("Click", SaveEvent)
 				if (this._type = "StartUp") {
-					this._gui.AddLink("yp", "<a id=`"StartUpOpen`">Open Folder</a>").OnEvent("Click", openStartUp)
+					this._gui.AddLink("yp", "<a id=`"StartUpOpen`">Open Startup Folder</a>").OnEvent("Click", openStartUp)
 					openStartUp(*) {
 						Run(A_Startup)
 					}
 				}
-			case "Dropdown":
+			case "Dropdown", "Radio":
 				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos, this.Title))
 				listOptions := []
 				for option in this._addedProps["Options"] {
 					listOptions.Push(option.Text)
 				}
-				this._ctrlComponents.Set("Input", this._gui.AddDropDownList("xp Section w100", listOptions))
-				this._ctrlComponents["Input"].OnEvent("Change", SaveEvent)
+				if (this._type = "Radio") {
+					radioArray := [],
+					ctrlOptions := "xp Section Group"
+					for idx, option in listOptions {
+						radioArray.Push(radioBtn := this._gui.AddRadio(ctrlOptions, option))
+						radioBtn.OnEvent("Click", SaveEvent)
+						ctrlOptions := "yp"
+					}
+					this._ctrlComponents.Set("Input", radioArray)
+				}
+				else {
+					this._ctrlComponents.Set("Input", this._gui.AddDropDownList("xp Section w100", listOptions))
+					this._ctrlComponents["Input"].OnEvent("Change", SaveEvent)
+				}
 			default:
 				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos . " Section", this.Title))
 				this._ctrlComponents.Set("Input", this._gui.AddEdit("xp r1 w200"))
@@ -212,11 +270,23 @@ class ConfigurationControl {
 	LoadValue() {
 		global ScriptConfigs
 		switch this._type, false {
-			case "Dropdown":
-				configValue := ScriptConfigs.Get(this._configPath, this._blankDefault, true)
+			case "Link":
+			case "Dropdown","Radio":
+				configValue := this._blankDefault
+				if (configExists := ScriptConfigs.ConfigExists(this._configPath)) {
+					configValue := ScriptConfigs.Get(this._configPath)
+				}
 				for index, option in this._addedProps["Options"] {
 					if (option.Value = configValue) {
-						this._ctrlComponents["Input"].Value := index
+						if (!configExists) {
+							ScriptConfigs.SetConfigFromPath(this._configPath, configValue, false)
+						}
+						if (this._type = "Dropdown") {
+							this._ctrlComponents["Input"].Value := index
+						}
+						else if (this._type = "Radio") {
+							this._ctrlComponents["Input"][index].Value := 1
+						}
 						break
 					}
 				}
@@ -229,16 +299,16 @@ class ConfigurationControl {
 
 	SaveValue(saveToFile := true) {
 		global ScriptConfigs
-		value := this._ctrlComponents["Input"].Value
+		value := this.Value
 		switch this._type, false {
+			case "Link":
 			case "Number":
-				value := Max(1, Min(value, 1000))
-				this._ctrlComponents["Input"].Value := value
+				this._ctrlComponents["Input"].Value := value := Max(1, Min(value, 1000))
 				ScriptConfigs.SetConfigFromPath(this._configPath, value, saveToFile)
-			case "Dropdown":
+			case "Dropdown","Radio":
 				ScriptConfigs.SetConfigFromPath(this._configPath, this._addedProps["Options"][value].Value, saveToFile)
 			case "StartUp":
-				if (value) {
+				if (value = 1) {
 					if (!HasStartUpShortcut()) {
 						FileCreateShortcut(A_ScriptFullPath, A_Startup . "\" . A_ScriptName . ".lnk")
 					}

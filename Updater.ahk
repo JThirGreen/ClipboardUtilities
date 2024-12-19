@@ -7,11 +7,39 @@
 }
 
 class Updater {
-	static _version := ""
 	static _latest := ""
+	static _version := ""
 	static Enabled := false
-	static ToastShown := false
 	static MenuText := ""
+	static ToastShown := false
+	
+	static FileName => RegExReplace(StrReplace(A_ScriptFullPath, A_ScriptDir . "\"), "(_[0-9]{14})?\.exe$", "")
+
+	/** The latest version available as the time it was last cached */
+	static Latest {
+		get {
+			if (StrLen(Updater._latest) = 0) {
+				Updater._latest := Updater.LatestLive
+			}
+			return Updater._latest
+		}
+		set {
+			Updater._latest := ""
+		}
+	}
+
+	/** The latest version available */
+	static LatestLive {
+		get {
+			liveVersion := TextFromURL("https://raw.githubusercontent.com/JThirGreen/ClipboardUtilities/main/Version.txt")
+			if (!(liveVersion ~= "[0-9]+(\.[0-9]+){2,3}")) {
+				liveVersion := (StrLen(Updater._latest) > 0) ? Updater._latest : Updater.Version
+			}
+			return liveVersion
+		}
+	}
+
+	/** The current version */
 	static Version {
 		get {
 			if (StrLen(Updater._version) = 0) {
@@ -20,27 +48,8 @@ class Updater {
 			return Updater._version
 		}
 	}
-	static Latest {
-		get {
-			if (StrLen(Updater._latest) = 0) {
-				Updater._latest := TextFromURL("https://raw.githubusercontent.com/JThirGreen/ClipboardUtilities/main/Version.txt")
-				if (!(Updater._latest ~= "[0-9]+(\.[0-9]+){2,3}")) {
-					Updater._latest := Updater.Version
-				}
-			}
-			return Updater._latest
-		}
-		set {
-			Updater._latest := ""
-		}
-	}
-	static FileName => RegExReplace(StrReplace(A_ScriptFullPath, A_ScriptDir . "\"), "(_[0-9]{14})?\.exe$", "")
 
 	__Init() {
-		if (!A_IsCompiled) {
-			return
-		}
-
 		Updater.MenuText := "Check for Updates"
 		A_TrayMenu.Insert("1&", Updater.MenuText, (*) => Updater.CheckForUpdate())
 
@@ -61,7 +70,7 @@ class Updater {
 
 	static CheckForUpdate() {
 		if (!Updater.IsUpToDate()) {
-			Updater.Enabled := true
+			Updater.Enabled := A_IsCompiled
 
 			if (StrLen(Updater.MenuText) > 0) {
 				A_TrayMenu.Delete(Updater.MenuText)
@@ -86,6 +95,45 @@ class Updater {
 				Updater.ToastShown := true
 			}
 		}
+	}
+
+	/**
+	 * Retrieve and cache the latest available version
+	 * @returns {String} Latest available version
+	 */
+	static GetLatestVersion() {
+		latestVer := this.LatestLive
+		if (this.Latest != latestVer) {
+			this._latest := this.LatestLive
+			this.ToastShown := false
+		}
+		return this.Latest
+	}
+
+	static IsUpToDate() {
+		latestVer := Updater.GetLatestVersion()
+		if (!A_IsCompiled) {
+			return false
+		}
+		currentVer := StrSplit(Updater.Version, ".")
+		latestVer := StrSplit(latestVer, ".")
+		
+		for i, latestStep in latestVer {
+			verStep := ((currentVer.Length >= i) ? currentVer[i] : 0)
+			if (verStep < latestStep) {
+				return false
+			}
+			else if (verStep = latestStep) {
+				continue
+			}
+			else if (verStep > latestStep) {
+				return true
+			}
+			else {
+				return -1
+			}
+		}
+		return true
 	}
 
 	static Update() {
@@ -117,31 +165,9 @@ class Updater {
 				}
 			}
 		}
-	}
-
-	static IsUpToDate() {
-		if (!A_IsCompiled) {
-			return true
+		else if (!A_IsCompiled) {
+			Updater.ToastShown := false
+			Updater.CheckForUpdate()
 		}
-		currentVer := StrSplit(Updater.Version, ".")
-		Updater.Latest := ""
-		latestVer := StrSplit(Updater.Latest, ".")
-		
-		for i, latestStep in latestVer {
-			verStep := ((currentVer.Length >= i) ? currentVer[i] : 0)
-			if (verStep < latestStep) {
-				return false
-			}
-			else if (verStep = latestStep) {
-				continue
-			}
-			else if (verStep > latestStep) {
-				return true
-			}
-			else {
-				return -1
-			}
-		}
-		return true
 	}
 }

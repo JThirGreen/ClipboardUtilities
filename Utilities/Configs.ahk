@@ -265,11 +265,12 @@ class ConfigurationFile {
 	/**
 	 * Get configuration value from config path
 	 * @param {String} name Config path to configuration value to retrieve
-	 * @param {String|Number|Array} default Default value to return if config path is not found 
-	 * @param {true|false} saveIfDefault If 'true' and config path is not found, then create it with the default as the value 
+	 * @param {String|Number|Array} default Default value to return if config path is not found
+	 * @param {true|false} saveIfDefault If 'true' and config path is not found, then create it with the default as the value
+	 * @param {true|false} saveToFile If 'false', then modify the config value without updating configuration file (ignored if saveIfDefault is 'false')
 	 * @returns {String|Number|Array} Value found at config path
 	 */
-	Get(name, default := "", saveIfDefault := false) {
+	Get(name, default := "", saveIfDefault := false, saveToFile := true) {
 		if (this._progressState = 'error') {
 			return default
 		}
@@ -280,7 +281,7 @@ class ConfigurationFile {
 		}
 		else {
 			if (saveIfDefault) {
-				this.SetConfigFromPath(name, default, true)
+				this.SetConfigFromPath(name, default, saveToFile)
 			}
 			return default
 		}
@@ -398,7 +399,7 @@ class ConfigurationFile {
 		}
 		/** @type {Map} */
 		config := %this.GetConfigFromPath(configPath, true)%
-		if (config.Has(configName) && config[configName] != value) {
+		if (!config.Has(configName) || config[configName] != value) {
 			config.Set(configName, value)
 			this._changedSinceLastSave := true
 		}

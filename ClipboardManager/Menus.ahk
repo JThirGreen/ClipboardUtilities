@@ -19,8 +19,9 @@ InitCbManagerMenu() {
 ReloadCustomClipboardMenu()
 {
 	global CbManager, CustomClipboardMenu
-	if (!CbManager.ReloadCbArrayMenu)
+	if (!CbManager.ReloadCbArrayMenu) {
 		return
+	}
 
 	CustomClipboardMenu := BuildCbArrayMenu(CbManager.CbArray)
 	CustomContextMenu.Add("Clipboard &List", CustomClipboardMenu)
@@ -38,14 +39,14 @@ ReloadCustomClipboardMenu()
  */
 BuildCbArrayMenu(cbArray) {
 	global CbManager
-	cbArrayMenu := Menu()
-	cbArrayContentMenu := Menu()
+	cbArrayMenu := Menu(), cbArrayContentMenu := Menu()
 
-	ClearCbArrayFunc := ClearCbArray.Bind(cbArray.Name)
-	cbArrayMenu.Add("&Clear", ClearCbArrayFunc)
+	clearMenuName := (CbManager.DefaultCbArrayId = cbArray.Id) ? "&Clear" : "&Delete",
+	ClearCbArrayFunc := ClearCbArray.Bind(cbArray.Id),
+	cbArrayMenu.Add(clearMenuName, ClearCbArrayFunc),
 	cbArrayMenu.Add()
 	
-	cbArrayMenu.Add("Bulk &Paste", BuildPasteMenu(cbArray))
+	cbArrayMenu.Add("Bulk &Paste", BuildPasteMenu(cbArray)),
 	cbArrayMenu.Add()
 	if (cbArray.Length = 0) {
 		cbArrayMenu.Disable("Bulk &Paste")
@@ -56,7 +57,7 @@ BuildCbArrayMenu(cbArray) {
 	listLimitBounds := SubsetBounds(clipCount, CbManager.MenuItemsCount, cbArray.selectedIdx)
 
 	Loop clipCount {
-		funcInstance := ClipMenuAction.Bind(A_Index)
+		funcInstance := ClipMenuAction.Bind(cbArray, A_Index)
 		menuTitle := (A_Index < 10) ? ("&" . A_Index) : ((A_Index = 10) ? "1&0" : A_Index)
 		menuTitle .= ": " . StrReplace(cbArray[A_Index].title, "&", "&&") . Chr(0xA0)
 		
@@ -106,7 +107,7 @@ BuildPasteMenu(cbArray) {
 	return pasteMenu
 
 	pasteFunc(mode, *) {
-		CbManager.Paste(mode, cbArray.Name)
+		CbManager.Paste(mode, cbArray.Id)
 	}
 }
 
@@ -117,33 +118,55 @@ BuildClipChangerMenu()
 {
 	global CbManager, CustomClipboardMenu
 
-	clipChangerMenu := Menu()
-	defaultCbArrayName := 0
-	if (CbManager.CbArrayMap.Has(defaultCbArrayName)) {
-		clipChangerMenu.Add(CbManager.CbArrayMap[defaultCbArrayName].MenuText, SelectCbArrayFunc.Bind(defaultCbArrayName, false))
+	/** @type {Menu} */
+	local clipChangerMenu := Menu(),
+		defaultCbArrayId := CbManager.DefaultCbArrayId,
+		selectedMenuText := CbManager.CbArray.MenuText
+	if (CbManager.CbArrayMap.Has(defaultCbArrayId)) {
+		AddClipArrayToMenu(CbManager.CbArrayMap[defaultCbArrayId])
 		clipChangerMenu.Add()
 	}
 
 	clipChangerMenu.Add("Actions", BuildClipChangerActionsMenu())
 	
 	addBlank := true
-	for name, cbArray in CbManager.CbArrayMap {
-		if (name != defaultCbArrayName) {
+	for id, cbArray in CbManager.CbArrayMap {
+		if (id != defaultCbArrayId) {
 			if (addBlank) {
 				clipChangerMenu.Add()
 				addBlank := false
 			}
-			clipChangerMenu.Add(cbArray.MenuText, SelectCbArrayFunc.Bind(name, false))
+			AddClipArrayToMenu(cbArray)
 		}
 	}
 	clipChangerMenu.Check(CbManager.CbArray.MenuText)
 	clipChangerMenu.Disable(CbManager.CbArray.MenuText)
 	return clipChangerMenu
 
-	SelectCbArrayFunc(name, showToolTip, *) {
+	/**
+	 * Generate and add menu item for a {@link ClipArray} object
+	 * @param {ClipArray} clipArray
+	 */
+	AddClipArrayToMenu(clipArray) {
+		menuText := clipArray.MenuText,
+		menuCallback := SelectCbArrayFunc.Bind(clipArray.Id, false)
+		if (menuText = selectedMenuText) {
+			clipChangerMenu.Add(menuText, menuCallback)
+			clipChangerMenu.Check(menuText)
+			clipChangerMenu.Disable(menuText)
+		}
+		else {
+			clipChangerMenu.Add(menuText, subMenu := BuildCbArrayMenu(clipArray))
+			subMenu.Insert("1&")
+			subMenu.Insert("1&", "&Select", menuCallback)
+			subMenu.Default := "&Select"
+		}
+	}
+
+	SelectCbArrayFunc(id, showToolTip, *) {
 		global mPosX, mPosY
 		CbManager.DisableCbChange()
-		CbManager.SelectCbArray(name, showToolTip)
+		CbManager.SelectCbArray(id, showToolTip)
 		ReloadCustomClipboardMenu()
 		CustomClipboardMenu.Show(mPosX, mPosY)
 		CbManager.EnableCbChange()
@@ -175,20 +198,20 @@ BuildClipChangerActionsMenu() {
 
 /**
  * Wrapper function for selecting clip from menu and pasting it
+ * @param {ClipArray} cbArray CB array to paste clip from
  * @param {Integer} index Index of clip to select and paste
  */
-ClipMenuAction(index, *) {
+ClipMenuAction(cbArray, index, *) {
 	global CbManager
-	CbManager.PasteClip(index, true)
+	cbArray.PasteClip(index, true)
 	CbManager.ReloadCbArrayMenu := true
 }
 
 /**
  * Wrapper function for clearing clips
- * @param {String} name Name of CbArray to clear
+ * @param {Integer} id ID of CB array to clear
  */
-ClearCbArray(name, *) {
+ClearCbArray(id, *) {
 	global CbManager
-	CbManager.SelectCbArray(0, false)
-	CbManager.Clear(name)
+	CbManager.Clear(id)
 }

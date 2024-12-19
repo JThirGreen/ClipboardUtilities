@@ -89,7 +89,7 @@ GetDisplayFromCoords(x, y, dispLeft?, dispTop?, dispRight?, dispBottom?, workAre
 	if (monitorCount > 1) {
 		Loop monitorCount {
 			GetBoundingCoords(A_Index)
-			if (%dispLeft% <= x && x <= %dispRight% && %dispTop% <= y && y <= %dispBottom%) {
+			if (%dispLeft% <= x && x < %dispRight% && %dispTop% <= y && y < %dispBottom%) {
 				return A_Index
 			}
 		}

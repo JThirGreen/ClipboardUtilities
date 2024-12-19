@@ -18,7 +18,7 @@ class ClipArray {
 	 */
 	maxClips => this.configs.Get("maxClips")
 	/**
-	 * Maximum number of clips shown at a time in tooltip selector
+	 * Maximum number of clips shown at a time in clip selector tooltip
 	 * @type {Integer}
 	 */
 	maxToolTipItems => this.configs.Get("maxTooltipItems")
@@ -34,11 +34,31 @@ class ClipArray {
 	 */
 	selectedIdx := -1
 
+	_name := ""
 	/**
 	 * For assignment of optional name 
 	 * @type {String}
 	 */
-	Name := ""
+	Name {
+		get {
+			if (StrLen(this._name) > 0) {
+				return this._name
+			}
+			else if (this.HasOwnProp("Id")) {
+				if (this.Id >= 0) {
+					return String(this.Id)
+				}
+			}
+			return "Clips"
+		}
+		set => this._name := value
+	}
+
+	/**
+	 * For assignment of optional ID 
+	 * @type {Integer}
+	 */
+	Id := unset
 
 	
 	/** @type {NestedArray<CustomClip>} */
@@ -118,14 +138,20 @@ class ClipArray {
 	 */
 	_toolTipList := ToolTipList()
 
-	__New(saveToFile := false, Name := "Clips") {
+	__New(saveToFile := false, id?, name?) {
 		; Get config values to ensure defaults are populated
 		this.configs.Get("maxClips", 20, true)
 		this.configs.Get("maxTooltipItems", 20, true)
 		this.configs.Get("trimBulkCopy", false, true)
 
 		this.configs.SetConfigFromPath("saveToFile", saveToFile, true)
-		this.Name := Name
+
+		if (IsSet(id) && id >= 0) {
+			this.Id := id
+		}
+		if (IsSet(name)) {
+			this.Name := name
+		}
 	}
 
 	/** @returns {CustomClip} */

@@ -14,19 +14,57 @@ class ToolTipList {
 	 * @type {Array<ToolTipBox>}
 	 **/
 	ToolTips := [""]
+	Origin := [0,0]
+	IdxOffset := 0
 
+	/**
+	 * Distance from left edge of the displayed tool tips to the origin
+	 * @type {Integer}
+	 */
 	Left := 0
+	/**
+	 * Distance from top edge of the displayed tool tips to the origin
+	 * @type {Integer}
+	 */
 	Top := 0
+	/**
+	 * Distance from right edge of the displayed tool tips to the origin
+	 * @type {Integer}
+	 */
 	Right := 0
+	/**
+	 * Distance from bottom edge of the displayed tool tips to the origin
+	 * @type {Integer}
+	 */
 	Bottom := 0
 	Width => this.Right - this.Left
 	Height => this.Bottom - this.Top
 
+	DisplayOptions := Map()
+	/** @type {"Mouse"|"Coordinates"|"Monitor"} */
+	DisplayMode => this.DisplayOptions.Get("Mode","Mouse")
+
+	/**
+	 * Origin x-offset from the center of the displayed tool tips
+	 * @type {Integer}
+	 */
+	CenterOffsetX => this.Width > 0 ? ((this.Left + this.Right) / 2) : 0
+	/**
+	 * Origin y-offset from the center of the displayed tool tips
+	 * @type {Integer}
+	 */
+	CenterOffsetY => this.Height > 0 ? ((this.Top + this.Bottom) / 2) : 0
+
 	/**
 	 * @param {String|Array<String>} content Content displayed in tooltip
 	 * @param {ToolTipDirection} direction Direction to append content to if multiple are provided
+	 * @param {Integer} idxOffset Offset to apply to tool tip indexes to allow preventing overlap with other tool tips
 	 */
-	__New(content?, direction?) {
+	__New(content?, direction?, idxOffset?, displayOpts?) {
+		if (IsSet(idxOffset) && idxOffset > 0) {
+			this.IdxOffset := idxOffset
+		}
+		this.SetDisplayOptions(displayOpts?)
 		if (IsSet(content)) {
 			this.Add(content, direction?)
 		}
@@ -38,7 +76,7 @@ class ToolTipList {
 			if (i > 0) {
 				i++
 				if (!this.ToolTips.Has(i)) {
-					this[i] := ToolTipBox("", i)
+					this[i] := ToolTipBox("", this.IdxOffset + i)
 				}
 				return this.ToolTips.Get(i, "")
 			}
@@ -111,12 +149,36 @@ class ToolTipList {
 				ttBox.RelativeTo := this._lastAddedTT
 			}
 			this.ToolTips.Push(ttBox)
-			ttBox.Idx := this.Length
+			ttBox.Idx := (this.Length + this.IdxOffset)
 			if (IsSet(direction)) {
 				ttBox.RelativeDirection := direction
 			}
 			this._lastAddedTT := ttBox
 		}
+	}
+
+	/**
+	 * Get and return coordinates of origin based on the display mode set
+	 * @returns {[Integer, Integer]} Origin coordinates in the format of [x,y]
+	 */
+	GetOrigin() {
+		switch this.DisplayMode, false {
+			case "Mouse":
+				GetScreenPosMouse(&mouseX, &mouseY)
+				this.Origin[1] := mouseX, this.Origin[2] := mouseY
+			case "Monitor":
+				monitorNumber := this.DisplayOptions.Get("Monitor", 0), xPercent := this.DisplayOptions.Get("xPercent", 0), yPercent := this.DisplayOptions.Get("yPercent", 0)
+				if (monitorNumber <= 1 || monitorNumber > MonitorGetCount()) {
+					monitorNumber := MonitorGetPrimary()
+				}
+				MonitorGetWorkArea(monitorNumber, &left, &top, &right, &bottom)
+				this.DisplayOptions.set("Monitor", monitorNumber),
+				this.Origin[1] := left + (((right - 1) - left) * (xPercent / 100.0)),
+				this.Origin[2] := top + (((bottom - 1) - top) * (yPercent / 100.0))
+			case "Coordinates":
+			default:
+		}
+		return this.Origin
 	}
 
 	/**
@@ -144,6 +206,33 @@ class ToolTipList {
 	Reset() {
 		this.Hide(true)
 		this.ToolTips := [""]
+	}
+
+	/**
+	 * Set display options from object
+	 * @param {Any} displayOpts Object of display options to set
+	 */
+	SetDisplayOptions(displayOpts?) {
+		if (IsSet(displayOpts)) {
+			mode := getDisplayOption("Mode", "")
+			if (mode = "Mouse" || mode = "Coordinates" || mode = "Monitor") {
+				this.DisplayOptions.Set("Mode", mode)
+			}
+			switch this.DisplayMode, false {
+				case "Mouse":
+				case "Monitor":
+					this.DisplayOptions.Set("xPercent", getDisplayOption("xPercent", this.DisplayOptions.Get("xPercent", 0))),
+					this.DisplayOptions.Set("yPercent", getDisplayOption("yPercent", this.DisplayOptions.Get("yPercent", 0)))
+				case "Coordinates":
+					this.Origin[1] := getDisplayOption("x", this.Origin[1]),
+					this.Origin[2] := getDisplayOption("y", this.Origin[2])
+				default:
+			}
+		}
+
+		getDisplayOption(optName, default?) {
+			return (IsSet(displayOpts) && displayOpts.HasOwnProp(optName)) ? displayOpts.%optName% : default
+		}
 	}
 
 	/**
@@ -175,16 +264,16 @@ class ToolTipList {
 		local originX, originY,
 			realLeft, realTop, realRight, realBottom,
 			virtualLeft, virtualTop, virtualRight, virtualBottom,
-			mouseX, mouseY,
-			boundLeft, boundTop, boundRight, boundBottom
-		GetScreenPosMouse(&mouseX, &mouseY)
-		GetDisplayFromCoords(mouseX, mouseY, &boundLeft, &boundTop, &boundRight, &boundBottom, true)
+			boundLeft, boundTop, boundRight, boundBottom,
+			origin := this.GetOrigin(),
+			refreshNeeded := false
+		GetDisplayFromCoords(origin[1], origin[2], &boundLeft, &boundTop, &boundRight, &boundBottom, true)
 
 		displayTTs()
 
 		this.Left := virtualLeft - originX, this.Top := virtualTop - originY, this.Right := virtualRight - originX, this.Bottom := virtualBottom - originY,
 		realWidth := realRight - realLeft, realHeight := realBottom - realTop
-		if (this.Width != realWidth || this.Height != realHeight) {
+		if (refreshNeeded || this.Width != realWidth || this.Height != realHeight) {
 			displayTTs()
 		}
 
@@ -201,8 +290,22 @@ class ToolTipList {
 			minOriginY := boundTop - this.Top,
 			maxOriginX := boundRight - this.Right - 1,
 			maxOriginY := boundBottom - this.Bottom - 1,
-			originX := Max(minOriginX, Min(maxOriginX, mouseX)),
-			originY := Max(minOriginY, Min(maxOriginY, mouseY)),
+			originX := Max(minOriginX, Min(maxOriginX, origin[1])),
+			originY := Max(minOriginY, Min(maxOriginY, origin[2]))
+
+			if (this.DisplayMode = "Monitor") {
+				xPercent := this.DisplayOptions.Get("xPercent", 0)
+				if (0 < xPercent && xPercent < 100) {
+					refreshNeeded |= (this.Width = 0)
+					originX := Max(minOriginX, Min(maxOriginX, originX - this.CenterOffsetX))
+				}
+				yPercent := this.DisplayOptions.Get("yPercent", 0)
+				if (0 < yPercent && yPercent < 100) {
+					refreshNeeded |= (this.Height = 0)
+					originY := Max(minOriginY, Min(maxOriginY, originY - this.CenterOffsetY))
+				}
+			}
+
 			isFirstShown := false
 			for tt in this.ToolTips {
 				if (IsSet(tt) && tt is ToolTipBox) {
@@ -366,7 +469,6 @@ class ToolTipBox {
 		this.Content := content,
 		this.Idx := idx,
 		this.DelayOnly := delayOnly
-		this.SetCoords("mouse","mouse")
 	}
 
 	/**
@@ -377,7 +479,7 @@ class ToolTipBox {
 	SetCoords(x := "", y := "") {
 		changed := false
 		if (x = "mouse" || y = "mouse") {
-			MouseGetPos(&mouseX, &mouseY)
+			GetScreenPosMouse(&mouseX, &mouseY)
 			if (x = "mouse") {
 				x := mouseX
 			}
@@ -385,13 +487,13 @@ class ToolTipBox {
 				y := mouseY
 			}
 		}
-		if (IsInteger(x)) {
-			newX := Number(x),
+		if (IsNumber(x)) {
+			newX := Round(Number(x)),
 			changed |= this._x != newX,
 			this._x := newX
 		}
-		if (IsInteger(y)) {
-			newY := Number(y),
+		if (IsNumber(y)) {
+			newY := Round(Number(y)),
 			changed |= this._y != newY,
 			this._y := newY
 		}
@@ -441,7 +543,6 @@ class ToolTipBox {
 					this.VirtualX := this.RelativeTo.VirtualLeft, this.VirtualY := this.RelativeTo.VirtualBottom
 			}
 		}
-		;MsgBox(direction . ": " . (success ? "Success" : "Fail"))
 		return success
 	}
 
@@ -454,7 +555,7 @@ class ToolTipBox {
 	Show(delay := 2000, relativePos := "", offset := [0,0]) {
 		/** @type {true|false} */
 		recalcDimensions := false
-		switch relativePos {
+		switch relativePos, false {
 			case "":
 			case "mouse":
 				this.SetCoords("mouse","mouse")

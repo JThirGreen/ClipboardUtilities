@@ -1,9 +1,11 @@
 #Requires AutoHotkey v2.0
 #Include main.ahk
+#UseHook true
 
 CoordMode("Mouse")
 CoordMode("ToolTip")
 CoordMode("Menu")
+
 
 ;-----------------------------+
 ;     hotkey definitions      |
@@ -12,13 +14,7 @@ CoordMode("Menu")
 ; Alt + Shift + V
 !+v::
 {
-	global mPosX, mPosY, CbManager
-	CbManager.DisableCbChange()
-	MouseGetPos(&mPosX, &mPosY)
-	InitClipboard()
-	ReloadCustomClipboardMenu()
-	CustomClipboardMenu.Show(mPosX, mPosY)
-	CbManager.EnableCbChange()
+	OpenClipboardMenu()
 }
 
 ; Ctrl + Shift + C
@@ -43,25 +39,31 @@ CoordMode("Menu")
 	CbManager.EnableCbChange()
 }
 
-; Ctrl + Shift + V
+; Ctrl + Shift? + V
+^v::
 ^+v::
 {
 	global CbManager
-	CbManager.DisableCbChange()
-	switch CbManager.CbArrayStatus {
-		case "end","":
-			CbManager.CbArrayStatus := "start"
-			CbManager.LastActionInitOn := A_TickCount
-			CbManagerAction()
-		default:
-			CbManager.LastActionOn := A_TickCount
+	if (ThisHotkey = CbManager.MainHotKey) {
+		CbManager.DisableCbChange()
+		switch CbManager.CbArrayStatus {
+			case "end","":
+				CbManager.CbArrayStatus := "start"
+				CbManager.LastActionInitOn := A_TickCount
+				CbManagerAction()
+			default:
+				CbManager.LastActionOn := A_TickCount
+		}
+	
+		SetTimer(CheckReleased, -50)
 	}
-
-	SetTimer(CheckReleased, -50)
+	else {
+		Send(ThisHotkey)
+	}
 	return
 
 	CheckReleased() {
-		if (!GetKeyState("Ctrl", "P") || !GetKeyState("Shift", "P")) {
+		if (!GetKeyState("Ctrl", "P") || IsShiftNeeded()) {
 			SetTimer(, 0)
 			CbManager.CbArrayStatus := "end"
 			CbManagerAction()
@@ -69,7 +71,8 @@ CoordMode("Menu")
 	}
 }
 
-; Ctrl + Shift + V (Released)
+; Ctrl + Shift? + V (Released)
+^v up::
 ^+v up::
 {
 	global CbManager
@@ -77,7 +80,7 @@ CoordMode("Menu")
 	switch CbManager.CbArrayStatus {
 		case "start":
 			if (nativeTimeout = 0 || (A_TickCount - CbManager.LastActionInitOn) <= nativeTimeout) {
-				Send("^+v")
+				Send(IsShiftNeeded() ? "^+v" : "^v")
 			}
 	}
 	CbManager.CbArrayStatus := "end"
@@ -115,9 +118,9 @@ CoordMode("Menu")
 	;}
 }
 
-#HotIf GetKeyState("Ctrl", "P") && GetKeyState("Shift", "P") && GetKeyState("v", "P")
-	; Ctrl + Shift + V + left click
-	; Ctrl + Shift + V + Enter
+#HotIf GetKeyState("Ctrl", "P") && GetKeyState("v", "P") && !IsShiftNeeded()
+	; Ctrl + Shift? + V + left click
+	; Ctrl + Shift? + V + Enter
 	v & LButton::
 	v & Enter::
 	{
@@ -129,8 +132,8 @@ CoordMode("Menu")
 		}
 	}
 
-	; Ctrl + Shift + V + Right arrow
-	; Ctrl + Shift + V + Forward
+	; Ctrl + Shift? + V + Right arrow
+	; Ctrl + Shift? + V + Forward
 	v & Right::
 	v & XButton2::
 	v & Browser_Forward::
@@ -146,8 +149,8 @@ CoordMode("Menu")
 		}
 	}
 	
-	; Ctrl + Shift + V + Left arrow
-	; Ctrl + Shift + V + Back
+	; Ctrl + Shift? + V + Left arrow
+	; Ctrl + Shift? + V + Back
 	v & Left::
 	v & XButton1::
 	v & Browser_Back::
@@ -163,17 +166,17 @@ CoordMode("Menu")
 		}
 	}
 	
-	; Ctrl + Shift + V + right click
-	;v & RButton::
-	;{
-	;	global CbManager, selectedText
-	;	CbManager.DisableCbChange()
-	;	InitClipboard()
-	;	- Future Special Function Here -
-	;	CbManager.EnableCbChange()
-	;}
+	; Ctrl + Shift? + V + right click
+	v & RButton::
+	{
+		global CbManager
+		CbManager.CbArrayStatus := "paused"
+		CbManagerAction()
+		OpenClipboardMenu()
+		CbManager.CbArrayStatus := "end"
+	}
 	
-	; Ctrl + Shift + V + Backspace
+	; Ctrl + Shift? + V + Backspace
 	v & BS::
 	{
 		global CbManager
@@ -184,7 +187,7 @@ CoordMode("Menu")
 		}
 	}
 	
-	; Ctrl + Shift + V + Delete
+	; Ctrl + Shift? + V + Delete
 	v & Del::
 	{
 		global CbManager
@@ -195,7 +198,7 @@ CoordMode("Menu")
 		}
 	}
 
-	; Ctrl + Shift + V + action key (Released)
+	; Ctrl + Shift? + V + action key (Released)
 	v & LButton up::
 	;v & RButton up::
 	v & Right up::
@@ -207,7 +210,7 @@ CoordMode("Menu")
 		CbManager.CbArrayStatus := "ready"
 	}
 	
-	; Ctrl + Shift + V + remove action key (Released)
+	; Ctrl + Shift? + V + remove action key (Released)
 	v & Left up::
 	v & Del up::
 	v & BS up::
@@ -223,77 +226,99 @@ CoordMode("Menu")
 		}
 	}
 
-	; Ctrl + Shift + V + mouse scroll wheel up
-	; Ctrl + Shift + V + Up arrow
+	; Ctrl + Shift? + V + mouse scroll wheel up
+	; Ctrl + Shift? + V + Up arrow
 	v & WheelUp::
 	v & Up::
 	{
 		customClipboardWheelAction(-1)
 	}
 
-	; Ctrl + Shift + V + mouse scroll wheel down
-	; Ctrl + Shift + V + Down arrow
+	; Ctrl + Shift? + V + mouse scroll wheel down
+	; Ctrl + Shift? + V + Down arrow
 	v & WheelDown::
 	v & Down::
 	{
 		customClipboardWheelAction(1)
 	}
 
-	; Ctrl + Shift + V + L
+	; Ctrl + Shift? + V + L
 	v & l::
 	{
 		CbManager.Paste("List")
 	}
 
-	; Ctrl + Shift + V + ,
+	; Ctrl + Shift? + V + ,
 	v & ,::
 	{
 		CbManager.Paste("commalist")
 	}
 
 	v & 0::
-	v & NumpadIns:: {
+	v & Numpad0::
+	v & NumpadIns::
+	{
 		SelectCbArray(0)
 	}
 	v & 1::
-	v & NumpadEnd:: {
+	v & Numpad1::
+	v & NumpadEnd::
+	{
 		SelectCbArray(1)
 	}
 	v & 2::
-	v & NumpadDown:: {
+	v & Numpad2::
+	v & NumpadDown::
+	{
 		SelectCbArray(2)
 	}
 	v & 3::
-	v & NumpadPgdn:: {
+	v & Numpad3::
+	v & NumpadPgdn::
+	{
 		SelectCbArray(3)
 	}
 	v & 4::
-	v & NumpadLeft:: {
+	v & Numpad4::
+	v & NumpadLeft::
+	{
 		SelectCbArray(4)
 	}
 	v & 5::
-	v & NumpadClear:: {
+	v & Numpad5::
+	v & NumpadClear::
+	{
 		SelectCbArray(5)
 	}
 	v & 6::
-	v & NumpadRight:: {
+	v & Numpad6::
+	v & NumpadRight::
+	{
 		SelectCbArray(6)
 	}
 	v & 7::
-	v & NumpadHome:: {
+	v & Numpad7::
+	v & NumpadHome::
+	{
 		SelectCbArray(7)
 	}
 	v & 8::
-	v & NumpadUp:: {
+	v & Numpad8::
+	v & NumpadUp::
+	{
 		SelectCbArray(8)
 	}
 	v & 9::
-	v & NumpadPgUp:: {
+	v & Numpad9::
+	v & NumpadPgUp::
+	{
 		SelectCbArray(9)
 	}
 #HotIf
 
-; function for specifically handling mouse wheel actions
+;-----------------------------+
+;    function definitions     |
+;-----------------------------+
 
 /**
  * Function for specifically handling mouse wheel actions
@@ -313,6 +338,26 @@ customClipboardWheelAction(increment) {
 }
 
 /**
+ * Shift clip selection index by {increment} number of steps and refresh CB array tooltip
+ * @param {Integer} increment Number of steps to shift selection
+ */
+CbArrayScroll(increment) {
+	global CbManager
+	CbManager.ShiftSelect(increment, true)
+	CbManager.ReloadCbArrayMenu := true
+	CbManager.Tooltip(true, 0)
+	SetTimer(CbArrayScrollEnd, -100)
+}
+
+/**
+ * Timer compatible function for applying scroll selection to active clipboard
+ */
+CbArrayScrollEnd() {
+	global CbManager
+	CbManager.Apply()
+}
+
+/**
  * Function for executing CB Manager actions based on CB array status
  */
 CbManagerAction(forceEnd := false) {
@@ -322,8 +367,9 @@ CbManagerAction(forceEnd := false) {
 		CbManager.Tooltip(false)
 		switch CbManager.CbArrayStatus {
 			case "start":
-				CbManager.Tooltip(true, 0)
+				CbManager.TooltipDelayed(CbManager.NativeHotKeyTimeout)
 			case "ready":
+			case "paused":
 			case "newSelected":
 			case "pasteCurrent":
 				CbManager.PasteClip()
@@ -368,7 +414,7 @@ CbManagerAction(forceEnd := false) {
 	EndAction() {
 		global CbManager
 		msSinceLastAction := A_TickCount - CbManager.LastActionOn
-		if (msSinceLastAction > 10000) {
+		if (msSinceLastAction > 10000 && CbManager.CbArrayStatus != "paused") {
 			if (CbManager.CbArrayStatus != "end") {
 				MsgBox("- CB Manager {" . CbManager.CbArrayStatus . " (" . msSinceLastAction . " ms ago)} - `r`nSomething went wrong. Returning to default state.")
 				CbManager.CbArrayStatus := "end"
@@ -384,33 +430,23 @@ CbManagerAction(forceEnd := false) {
 	}
 }
 
+IsShiftNeeded() {
+	global CbManager
+	return CbManager.MainHotKey = "^+v" && !GetKeyState("Shift", "P")
+}
+
+OpenClipboardMenu() {
+	global mPosX, mPosY, CbManager
+	CbManager.DisableCbChange()
+	MouseGetPos(&mPosX, &mPosY)
+	InitClipboard()
+	ReloadCustomClipboardMenu()
+	CustomClipboardMenu.Show(mPosX, mPosY)
+	CbManager.EnableCbChange()
+}
+
 SelectCbArray(name) {
 	global CbManager
 	CbManager.SelectCbArray(name)
 	CbManagerAction(true)
-}
-
-
-;-----------------------------+
-;    function definitions     |
-;-----------------------------+
-
-/**
- * Shift clip selection index by {increment} number of steps and refresh CB array tooltip
- * @param {Integer} increment Number of steps to shift selection
- */
-CbArrayScroll(increment) {
-	global CbManager
-	CbManager.ShiftSelect(increment, true)
-	CbManager.ReloadCbArrayMenu := true
-	CbManager.Tooltip(true, 0)
-	SetTimer(CbArrayScrollEnd, -100)
-}
-
-/**
- * Timer compatible function for applying scroll selection to active clipboard
- */
-CbArrayScrollEnd() {
-	global CbManager
-	CbManager.Apply()
 }

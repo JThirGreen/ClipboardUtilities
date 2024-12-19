@@ -14,6 +14,11 @@ class ClipboardManager {
 	configs := Configurations("ClipboardManager")
 
 	/**
+	 * Hotkey to be used to initialize clip selector
+	 * @type {"^v"|"^+v"}
+	 */
+	MainHotKey => this.configs.Get("mainHotKey")
+	/**
 	 * Flag for whether to store clip files or keep exclusively in memory
 	 * @type {true|false}
 	 */
@@ -33,19 +38,25 @@ class ClipboardManager {
 	 * {@link ClipArray} for holding clipboard history of CbManager
 	 * @type {ClipArray}
 	 */
-	CbArray => this.CbArrayMap.Has(this.SelectedCbArrayName) ? this.CbArrayMap[this.SelectedCbArrayName] : ""
+	CbArray => this.CbArrayMap.Has(this.SelectedCbArrayId) ? this.CbArrayMap[this.SelectedCbArrayId] : ""
 	
 	/**
 	 * Map of saved {@link ClipArray} objects
-	 * @type {Map<String,ClipArray>}
+	 * @type {Map<Integer,ClipArray>}
 	 */
 	CbArrayMap := Map()
 	
 	/**
-	 * Name of currently selected CB array
-	 * @type {String}
+	 * ID of default CB array
+	 * @type {Integer}
 	 */
-	SelectedCbArrayName := ""
+	DefaultCbArrayId := 0
+	
+	/**
+	 * ID of currently selected CB array
+	 * @type {Integer}
+	 */
+	SelectedCbArrayId := -1
 
 	/**
 	 * Current status of CB array
@@ -82,13 +93,17 @@ class ClipboardManager {
 	OnCbChangeHandler := ObjBindMethod(this, "OnCbChange")
 
 	__New() {
+		if (!this.configs.ConfigExists("mainHotKey")) {
+			SetTimer(TrayTip.Bind("Select the preferred hotkey by right-clicking the system tray icon and selecting `"Configure`"", "Clipboard Utilities", 0x24), -5000)
+		}
 		; Get config values to ensure defaults are populated
+		this.configs.Get("mainHotKey", "^+v", true, false)
 		this.configs.Get("useClipFiles", false, true)
 		this.configs.Get("nativeHotKeyTimeout", 250, true)
 		this.configs.Get("menuItemsCount", 5, true)
 
-		this.SelectCbArray(0, false)
-		this.CbArrayMap[0].Category := "Default"
+		this.SelectCbArray(this.DefaultCbArrayId, false)
+		this.CbArrayMap[this.DefaultCbArrayId].Category := "Default"
 		this.LoadCbArrays()
 		this.CleanFiles()
 		this.configs.AddConfigAction("useClipFiles", ObjBindMethod(this, "MarkChanged"))
@@ -105,7 +120,7 @@ class ClipboardManager {
 	 * If saved to disk, then check each clip list and delete any *.clip files not found in any
 	 */
 	CleanFiles() {
-		For name, cbArray in this.CbArrayMap {
+		For id, cbArray in this.CbArrayMap {
 			cbArray.CleanFolder()
 		}
 	}
@@ -155,8 +170,8 @@ class ClipboardManager {
 			this.CbArray.Add(CustomClip(selectedClip, "binary"))
 		}
 		else {
-			newCbArrayFound := false
-			currentSelection := this.SelectedCbArrayName
+			newCbArrayFound := false,
+			currentSelection := this.SelectedCbArrayId
 			Loop 9 {
 				if (!this.CbArrayMap.Has(A_Index)) {
 					this.SelectCbArray(A_Index, false)
@@ -167,7 +182,7 @@ class ClipboardManager {
 				}
 			}
 			if (!newCbArrayFound) {
-				nextSelection := Mod((IsNumber(currentSelection) ? currentSelection : 0), 9) + 1
+				nextSelection := Mod((IsNumber(currentSelection) ? currentSelection : this.DefaultCbArrayId), 9) + 1
 				
 				this.SelectCbArray(nextSelection, false)
 			}
@@ -180,19 +195,24 @@ class ClipboardManager {
 
 	/**
 	 * Remove all stored {@link CustomClip} clips of selected {@link ClipArray} and reset selected index
-	 * @param {String} name Name of {@link ClipArray} to clear
+	 * @param {Integer} id ID of {@link ClipArray} to clear
 	 * 
 	 * If omitted or blank, then the selected {@link ClipArray} is cleared instead
 	 */
-	Clear(name?) {
-		if (IsSet(name) && name != this.CbArray.Name && this.CbArrayMap.Has(name)) {
-			this.CbArrayMap[name].DeleteFromFolder()
-			this.CbArrayMap.Delete(name)
-			AddToolTip("Selected clip list (" . name . ") has been deleted`r`nClip list `"" . this.CbArray.Name . "`" is now selected", 5000)
+	Clear(id?) {
+		if (IsSet(id) && id != this.DefaultCbArrayId && this.CbArrayMap.Has(id)) {
+			ttMessage := "Clip list (" . String(id) . ") has been deleted"
+			if (id = this.SelectedCbArrayId) {
+				this.SelectCbArray(this.DefaultCbArrayId, false)
+				ttMessage .= "`r`nClip list `"" . this.CbArray.Name . "`" is now selected"
+			}
+			this.CbArrayMap[id].DeleteFromFolder()
+			this.CbArrayMap.Delete(id)
+			AddToolTip(ttMessage, 5000)
 		}
 		else {
 			SetClipboardValue("")
-			this.GetCbArray(name).Clear(true)
+			this.GetCbArray(id).Clear(true)
 		}
 		this.MarkChanged()
 	}
@@ -202,21 +222,20 @@ class ClipboardManager {
 	 * @param {true|false} keepDefault Set to 'true' to not clear the default clip list
 	 */
 	ClearAll(keepDefault := false) {
-		defaultName := 0
 		toDelete := []
-		for name, cbArray in this.CbArrayMap {
+		for id, cbArray in this.CbArrayMap {
 			if (cbArray.Category = "Default") {
-				defaultName := name
+				this.DefaultCbArrayId := id
 				if (keepDefault)
 					continue
 			}
 			cbArray.DeleteFromFolder()
-			toDelete.Push(name)
+			toDelete.Push(id)
 		}
-		for name in toDelete {
-			this.CbArrayMap.Delete(name)
+		for id in toDelete {
+			this.CbArrayMap.Delete(id)
 		}
-		this.SelectCbArray(defaultName, false)
+		this.SelectCbArray(this.DefaultCbArrayId, false)
 		AddToolTip("Clip lists have been cleared", 5000)
 		this.MarkChanged()
 	}
@@ -235,15 +254,12 @@ class ClipboardManager {
 	 * @param {CustomClip} newClip Clip to replace selected
 	 */
 	ReplaceSelected(newClip := CustomClip.LoadFromClipboard()) {
-		if (this.AppendableClip() != this.CbArray) {
-			this.AppendableClip(true).Add(newClip)
-		}
-		else {
-			this.CbArray.ReplaceSelected(newClip)
-		}
-		TrayTip(newClip.title, "Moved to clipboard", 0x14)
-		SetTimer(() => (TrayTip()), 2000)
-		;ToolTipList(["Moved to clipboard:", newClip.title]).Show()
+		this.AppendableClip(true).Add(newClip)
+		;SetTimer(() => (TrayTip()), 2000)
+		ToolTipList(["Added to clipboard:", newClip.title], , 4, {
+			Mode: "Monitor",
+			xPercent: 100
+		}).Show()
 		this.MarkChanged()
 	}
 
@@ -296,11 +312,11 @@ class ClipboardManager {
 	/**
 	 * Paste the contents of CB array based on mode
 	 * @param {String} mode Mode for how {@link ClipArray.Paste()} will paste contents of CB array
-	 * @param {String} name Optional name of {@link ClipArray} to paste instead of selected 
+	 * @param {Integer} id Optional ID of {@link ClipArray} to paste instead of selected 
 	 */
-	Paste(mode, name?) {
+	Paste(mode, id?) {
 		this.DisableCbChange()
-		this.GetCbArray(name ?? unset).Paste(mode)
+		this.GetCbArray(id ?? unset).Paste(mode)
 		this.EnableCbChange()
 	}
 
@@ -319,11 +335,11 @@ class ClipboardManager {
 	AppendableClip(select:=true) {
 		if (this.CbArray.Category = "List") {
 			if (select) {
-				this.SelectCbArray(0, false)
+				this.SelectCbArray(this.DefaultCbArrayId, false)
 				AddToolTip("Default clip list selected")
 			}
 			else {
-				return this.GetCbArray(0)
+				return this.GetCbArray(this.DefaultCbArrayId)
 			}
 		}
 		return this.CbArray
@@ -336,43 +352,81 @@ class ClipboardManager {
 	 * true: Generate and show tooltip
 	 * 
 	 * false: Hide tooltip if currently shown
+	 * @param {Integer} duration Time (in ms) to automatically hide the tooltip. Set to 0 to show indefinitely.
 	 */
-	Tooltip(show := true, delay?) {
-		this.CbArray.Tooltip(show, "Clip history selected: " . String(this.SelectedCbArrayName), delay ?? unset)
+	Tooltip(show := true, duration?) {
+		this.TooltipDelayedEnd()
+		this.CbArray.Tooltip(show, "Clip history selected: " . String(this.SelectedCbArrayId), duration ?? unset)
 	}
 
 	/**
-	 * Get selected {@link ClipArray} or get a {@link ClipArray} by name
-	 * @param {String} name Name of {@link ClipArray} to return
+	 * Show clip array tooltip after a set delay
+	 * @param {Integer} delay Time (in ms) to wait before showing the tooltip
+	 * @param {Integer} duration Time (in ms) to automatically hide the tooltip. Set to 0 to show indefinitely.
+	 */
+	TooltipDelayed(delay := 0, duration?) {
+		this.TooltipDelayedEnd()
+		if (delay > 0) {
+			this.DefineProp("_boundDelayedTooltip", {Value: ObjBindMethod(this, "Tooltip", true, duration ?? unset)})
+			delay := 0 - Abs(delay) ; Force negative to only run timer once
+			SetTimer(this._boundDelayedTooltip, delay)
+		}
+		else {
+			this.Tooltip(true, duration ?? unset)
+		}
+	}
+	
+	/**
+	 * Remove delayed tooltip if one exists
+	 */
+	TooltipDelayedEnd() {
+		if (this.HasOwnProp("_boundDelayedTooltip")) {
+			SetTimer(this._boundDelayedTooltip, 0)
+			this.DeleteProp("_boundDelayedTooltip")
+		}
+	}
+
+	/**
+	 * Get selected {@link ClipArray} or get a {@link ClipArray} by ID
+	 * @param {Integer} id ID of {@link ClipArray} to return
 	 * 
 	 * If omitted or blank, then the selected {@link ClipArray} is returned instead
-	 * @returns {ClipArray} 
+	 * @returns {ClipArray}
 	 */
-	GetCbArray(name?) {
-		if (IsSet(name) && StrLen(name) > 0)
-			if (this.CbArrayMap.Has(name)) {
-				return this.CbArrayMap[name]
+	GetCbArray(id?) {
+		if (IsSet(id) && id >= 0)
+			if (this.CbArrayMap.Has(id)) {
+				return this.CbArrayMap[id]
 			}
 			else {
-				MsgBox("Clip list `"" . name . "`" could not be found")
+				MsgBox("Clip list `"" . String(id) . "`" could not be found")
 			}
 		else {
 			return this.CbArray
 		}
 	}
 
-	SelectCbArray(name, showToolTip := true) {
-		if (!this.CbArrayMap.Has(name) || (this.UseClipFiles && !this.CbArrayMap[name].IsLoaded)) {
-			this.CbArrayMap.Set(name, ClipArray(this.UseClipFiles, name))
+	/**
+	 * Select {@link ClipArray} by ID and return it
+	 * @param {Integer} id ID of {@link ClipArray} to select and return
+	 * @param {true|false} showToolTip Tooltip of the newly selected clip array will display unless this is set to false 
+	 * @returns {ClipArray}
+	 */
+	SelectCbArray(id, showToolTip := true) {
+		if (this.CbArrayMap.Has(this.SelectedCbArrayId)) {
+			this.Tooltip(false)
+		}
+		if (!this.CbArrayMap.Has(id) || (this.UseClipFiles && !this.CbArrayMap[id].IsLoaded)) {
+			this.CbArrayMap.Set(id, ClipArray(this.UseClipFiles, id))
 			if (this.UseClipFiles) {
-				this.CbArrayMap[name].LoadFromFolder()
+				this.CbArrayMap[id].LoadFromFolder()
 			}
 		}
-		this.SelectedCbArrayName := name
+		this.SelectedCbArrayId := id
 		this.CbArray.Apply()
 
-		validName := RegExMatch(name, "[1-9]")
-		TraySetIcon(Resource((validName ? ("Images\cb" . name . ".ico") : "Images\tray.ico"), 14).Handle)
+		validName := RegExMatch(String(id), "[1-9]")
+		TraySetIcon(Resource((validName ? ("Images\cb" . String(id) . ".ico") : "Images\tray.ico"), 14).Handle)
 		
 		if (showToolTip) {
 			this.Tooltip()
