@@ -254,7 +254,7 @@ class ConfigurationFile {
 	 * Load configuration values from configuration file
 	 */
 	Load() {
-		if (this._progressState = 'error') {
+		if (this._progressState = 'error' || !FileExist(this.FileName)) {
 			return
 		}
 		this._configVersion := ConfigurationFile._configVersion
@@ -312,6 +312,7 @@ class ConfigurationFile {
 			return false
 		}
 		
+		this.VersionCheck()
 		conf := this.GetConfigFromPath(name)
 		return !(conf = "" || %conf% = "")
 	}

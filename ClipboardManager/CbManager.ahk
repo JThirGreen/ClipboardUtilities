@@ -29,6 +29,11 @@ class ClipboardManager {
 	 */
 	NativeHotKeyTimeout => this.configs.Get("nativeHotKeyTimeout")
 	/**
+	 * Hold delay for certain hotkeys before disabling native behavior on release (in ms)
+	 * @type {Integer}
+	 */
+	ClipListSelectorDelay => this.configs.Get("clipListSelectorDelay")
+	/**
 	 * Number of CB array menu options show in the menu without expanding "All" menu
 	 * @type {Integer}
 	 */
@@ -94,12 +99,13 @@ class ClipboardManager {
 
 	__New() {
 		if (!this.configs.ConfigExists("mainHotKey")) {
-			SetTimer(TrayTip.Bind("Select the preferred hotkey by right-clicking the system tray icon and selecting `"Configure`"", "Clipboard Utilities", 0x24), -5000)
+			SetTimer(TrayTip.Bind("Select the main hotkey by right-clicking the tray icon and selecting `"Configure`"", "Clipboard Utilities", 0x24), -5000)
 		}
 		; Get config values to ensure defaults are populated
 		this.configs.Get("mainHotKey", "^+v", true, false)
 		this.configs.Get("useClipFiles", false, true)
 		this.configs.Get("nativeHotKeyTimeout", 250, true)
+		this.configs.Get("clipListSelectorDelay", 50, true)
 		this.configs.Get("menuItemsCount", 5, true)
 
 		this.SelectCbArray(this.DefaultCbArrayId, false)

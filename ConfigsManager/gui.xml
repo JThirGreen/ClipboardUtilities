@@ -1,5 +1,5 @@
 <Configs>
-	<Config Name="ClipboardManager">
+	<Config Name="ClipboardManager" Description="Clipboard Manager">
 		<Property Name="useClipFiles" Type="Checkbox" Description="Persist clips by saving them to disk"></Property>
 		<Property Name="." Type="Link" Description="Open Folder" Position="Inline"></Property>
 		<Property Name="mainHotKey" Type="Radio" Description="Main hotkey for triggering clip selector">
@@ -8,20 +8,26 @@
 				<Option Value="^+v" Text="Ctrl+Shift+V"></Option>
 			</Options>
 		</Property>
-		<Property Name="nativeHotKeyTimeout" Type="Dropdown" Description="Hold delay for certain hotkeys before disabling native behavior on release (in ms)">
+		<Property Name="nativeHotKeyTimeout" Type="Dropdown" Description="Main hotkey delay before disabling native behavior on release (in ms)">
 			<Options Type="Default">
-				<Option Value="0" Text="Disable"></Option>
+				<Option Value="0" Text="Never Disable"></Option>
+			</Options>
+			<Options Type="Number" Start="0" End="10000" Step="50" Skip="0"></Options>
+		</Property>
+		<Property Name="clipListSelectorDelay" Type="Dropdown" Description="Main hotkey delay before displaying clip list selector (in ms)">
+			<Options Type="Default">
+				<Option Value="0" Text="No Delay"></Option>
 			</Options>
 			<Options Type="Number" Start="0" End="10000" Step="50" Skip="0"></Options>
 		</Property>
 		<Property Name="menuItemsCount" Type="Number" Description="# of clips shown at a time in clip list menu"></Property>
 	</Config>
-	<Config Name="ClipArray">
+	<Config Name="ClipArray" Description="Clip List Selector">
 		<Property Name="maxClips" Type="Number" Description="Maximum # of clips in clip list" Note="Ignored when bulk copying"></Property>
 		<Property Name="maxTooltipItems" Type="Number" Description="# of clips shown at a time in clip list tooltip"></Property>
 		<Property Name="trimBulkCopy" Type="Checkbox" Description="Trim whitespaces when bulk copying"></Property>
 	</Config>
-	<Config Name="">
+	<Config Name="" Description="Global">
 		<Property Name="onStartUp" Type="StartUp" Description="Run on start up"></Property>
 	</Config>
 </Configs>

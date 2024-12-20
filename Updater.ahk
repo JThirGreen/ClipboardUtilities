@@ -79,17 +79,31 @@ class Updater {
 			A_TrayMenu.Insert("1&", Updater.MenuText, (*) => Updater.Update())
 
 			if (!Updater.ToastShown) {
+				OnMessage(0x404, trayTipEvent)
 				TrayTip("Update (" . Updater.Latest . ") available`r`nClick to update", "Clipboard Utilities", 0x24)
-				OnMessage(0x404, clickTrayTip)
 	
-				clickTrayTip(wParam, lParam, msg, hwnd) {
+				trayTipEvent(wParam, lParam, msg, hwnd) {
 					if (hwnd != A_ScriptHwnd) {
 						return
 					}
 					switch lParam {
-						case 1029:
-							Updater.Update()
+						case 0x200: ; Tray Icon: WM_MOUSEMOVE - When mouse cursor moves over tray icon
+						case 0x201: ; Tray Icon: WM_LBUTTONDOWN - When tray icon is left-clicked
+						case 0x202: ; Tray Icon: WM_LBUTTONUP - When left-click is released
+						case 0x204: ; Tray Icon: WM_RBUTTONDOWN - When right-click menu option is selected with left-click
+						case 0x205: ; Tray Icon: WM_RBUTTONUP - When right-click is released
+						case 0x207: ; Tray Icon: WM_MBUTTONDOWN - When tray icon is middle-clicked
+						case 0x208: ; Tray Icon: WM_MBUTTONDOWN - When middle-click is released
+						case 0x402: ; Notification Toast: NIN_BALLOONSHOW - When toast is displayed
+						case 0x403: ; Notification Toast: NIN_BALLOONHIDE - When toast disappears but isn't caught by message 0x404
+						case 0x404: ; Notification Toast: NIN_BALLOONTIMEOUT - When toast is closed or timed out
+							OnMessage(0x404, trayTipEvent, 0)
+						case 0x405: ; Notification Toast: NIN_BALLOONUSERCLICK - When toast is clicked by user
+							if (MsgBox("Update to " . Updater.Latest . "?", , "YN") = "Yes") {
+								Updater.Update()
+							}
 						default:
+							MsgBox(Format("0x{1:x}|0x{2:x}|0x{3:x}", wParam, lParam, msg))
 					}
 				}
 				Updater.ToastShown := true

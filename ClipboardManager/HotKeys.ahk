@@ -200,11 +200,13 @@ CoordMode("Menu")
 
 	; Ctrl + Shift? + V + action key (Released)
 	v & LButton up::
-	;v & RButton up::
+	v & RButton up::
 	v & Right up::
 	v & Enter up::
 	v & XButton2 up::
 	v & Browser_Forward up::
+	v & l up::
+	v & , up::
 	{
 		global CbManager
 		CbManager.CbArrayStatus := "ready"
@@ -367,7 +369,7 @@ CbManagerAction(forceEnd := false) {
 		CbManager.Tooltip(false)
 		switch CbManager.CbArrayStatus {
 			case "start":
-				CbManager.TooltipDelayed(CbManager.NativeHotKeyTimeout)
+				CbManager.TooltipDelayed(CbManager.ClipListSelectorDelay)
 			case "ready":
 			case "paused":
 			case "newSelected":

@@ -55,6 +55,10 @@ class ToolTipList {
 	 */
 	CenterOffsetY => this.Height > 0 ? ((this.Top + this.Bottom) / 2) : 0
 
+	/** @type {"Displayed"|"InProgress"|"Hiding"|"Hidden"} */
+	RenderingStatus := "Hidden"
+	RenderInProgress => this.RenderingStatus = "InProgress"
+
 	/**
 	 * @param {String|Array<String>} content Content displayed in tooltip
 	 * @param {ToolTipDirection} direction Direction to append content to if multiple are provided
@@ -261,6 +265,7 @@ class ToolTipList {
 	}
 
 	Show(delay := 2000) {
+		this.RenderingStatus := "InProgress"
 		local originX, originY,
 			realLeft, realTop, realRight, realBottom,
 			virtualLeft, virtualTop, virtualRight, virtualBottom,
@@ -277,15 +282,26 @@ class ToolTipList {
 			displayTTs()
 		}
 
-		if (delay) {
+		if (this.RenderInProgress && delay) {
 			delay := 0 - Abs(delay) ; Force negative to only run timer once
 			if (!this.HasOwnProp("_boundHideMethod")) {
 				this._boundHideMethod := ObjBindMethod(this, "Hide", true)
 			}
 			SetTimer(this._boundHideMethod, delay)
 		}
+		if (this.RenderInProgress) {
+			this.RenderingStatus := "Displayed"
+		}
+		else {
+			this.Hide(true)
+		}
+		return
 
 		displayTTs() {
+			if (!this.RenderInProgress) {
+				; Skip further rendering as it was interrupted
+				return
+			}
 			minOriginX := boundLeft - this.Left,
 			minOriginY := boundTop - this.Top,
 			maxOriginX := boundRight - this.Right - 1,
@@ -327,11 +343,14 @@ class ToolTipList {
 	}
 
 	Hide(force := false) {
+		force |= this.RenderInProgress
+		this.RenderingStatus := "Hiding"
 		for idx, tt in this.ToolTips {
 			if (IsSet(tt) && tt is ToolTipBox) {
 				tt.Hide(force)
 			}
 		}
+		this.RenderingStatus := "Hidden"
 	}
 }
 

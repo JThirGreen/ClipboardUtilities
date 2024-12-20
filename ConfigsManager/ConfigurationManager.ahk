@@ -37,28 +37,37 @@ class ConfigurationManager {
 		if (this._guiXml = "")
 			this.LoadGuiXml()
 
-		this._gui.Title := "Clipboard Utility Configurations"
+		this._gui.Title := "Clipboard Utility Configurations",
+		this._gui.MarginX := 8,
+		this._gui.MarginY := 8
 
+		titleOptions := "xm ym"
 		for config in this._guiXml.selectNodes("Configs/Config") {
-			configName := config.getAttribute("Name")
-			properties := config.selectNodes("Property")
+			configName := config.getAttribute("Name"),
+			configDesc := config.getAttribute("Description")
+			configTitle := (configDesc != "") ? configDesc : configName
+			
+			this._gui.SetFont(configTitle !="" ? "bold underline s12" : "s1")
+			this._gui.AddText(titleOptions, (configDesc != "") ? configDesc : configName)
+			titleOptions := "xm y+12"
+			this._gui.SetFont()
+
+			properties := config.selectNodes("Property"),
+			guiPosition := "xm+8 y+4"
 			for property in properties {
-				propName := property.getAttribute("Name")
-				propType := property.getAttribute("Type")
-				propDesc := property.getAttribute("Description")
+				propName := property.getAttribute("Name"),
+				propType := property.getAttribute("Type"),
+				propDesc := property.getAttribute("Description"),
 				addedProps := Map()
-				addedProps.Set("Note", property.getAttribute("Note"))
-				addedProps.Set("Position", property.getAttribute("Position"))
+				addedProps.Set("Note", property.getAttribute("Note")),
+				addedProps.Set("Position", property.getAttribute("Position")),
 				addedProps.Set("Options", CreateDDOptions(property))
 				configPath := (StrLen(configName) ? (configName . ".") : "") . propName
-				guiPosition := "xs"
-				if (this._controls.Count = 0) {
-					guiPosition := "xm"
-				}
-				else if (property.getAttribute("Position") = "Inline") {
+				if (property.getAttribute("Position") = "Inline") {
 					guiPosition := "yp"
 				}
 				this.CreateControl(propName, propType, propDesc, configPath, guiPosition, addedProps)
+				guiPosition := "xs"
 			}
 		}
 
@@ -175,7 +184,10 @@ class ConfigurationControl {
 		this.Build()
 	}
 
+	NoteFontOptions => "italic"
+
 	Title => (this._description != "") ? this._description : this._name
+	TitleFontOptions => "bold"
 
 	Value {
 		get {
@@ -201,6 +213,8 @@ class ConfigurationControl {
 	Build() {
 		initialPos := this._guiPosition || "xs"
 		switch this._type, false {
+			case "Text":
+				AddTitle(initialPos, this.Title)
 			case "Link":
 				this._gui.AddLink(initialPos, "<a id=`"" . this._name . "`">" . this.Title . "</a>").OnEvent("Click", openLink)
 				openLink(*) {
@@ -219,12 +233,12 @@ class ConfigurationControl {
 					}
 				}
 			case "Number":
-				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos, this.Title))
-				this._ctrlComponents.Set("Input", this._gui.AddEdit("xp Section Number Right r1 w50"))
+				AddTitle(initialPos, this.Title)
+				this._ctrlComponents.Set("Input", this._gui.AddEdit("xp y+4 Section Number Right r1 w50"))
 				this._ctrlComponents["Input"].OnEvent("Change", SaveEvent)
 				this._gui.AddUpDown("Range1-1000", 1)
 				if (this._addedProps["Note"] != "") {
-					this._ctrlComponents.Set("Note", this._gui.AddText("yp", "Note: " . this._addedProps["Note"]))
+					AddNote("yp", "Note: " . this._addedProps["Note"])
 				}
 			case "Checkbox", "StartUp":
 				this._ctrlComponents.Set("Input", this._gui.AddCheckbox(initialPos . " Section", this.Title))
@@ -237,14 +251,14 @@ class ConfigurationControl {
 					}
 				}
 			case "Dropdown", "Radio":
-				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos, this.Title))
+				AddTitle(initialPos, this.Title)
 				listOptions := []
 				for option in this._addedProps["Options"] {
 					listOptions.Push(option.Text)
 				}
 				if (this._type = "Radio") {
 					radioArray := [],
-					ctrlOptions := "xp Section Group"
+					ctrlOptions := "xp y+4 Section Group"
 					for idx, option in listOptions {
 						radioArray.Push(radioBtn := this._gui.AddRadio(ctrlOptions, option))
 						radioBtn.OnEvent("Click", SaveEvent)
@@ -253,23 +267,34 @@ class ConfigurationControl {
 					this._ctrlComponents.Set("Input", radioArray)
 				}
 				else {
-					this._ctrlComponents.Set("Input", this._gui.AddDropDownList("xp Section w100", listOptions))
+					this._ctrlComponents.Set("Input", this._gui.AddDropDownList("xp y+4 Section w100", listOptions))
 					this._ctrlComponents["Input"].OnEvent("Change", SaveEvent)
 				}
 			default:
-				this._ctrlComponents.Set("Name", this._gui.AddText(initialPos . " Section", this.Title))
+				AddTitle(initialPos . " Section", this.Title)
 				this._ctrlComponents.Set("Input", this._gui.AddEdit("xp r1 w200"))
 				this._ctrlComponents["Input"].OnEvent("Change", SaveEvent)
 		}
+		this.LoadValue()
 		SaveEvent(*) {
 			this.SaveValue(true)
 		}
-		this.LoadValue()
+		AddTitle(Options, Text) {
+			this._gui.SetFont(this.TitleFontOptions)
+			this._ctrlComponents.Set("Name", this._gui.AddText(Options, Text))
+			this._gui.SetFont()
+		}
+		AddNote(Options, Text) {
+			this._gui.SetFont(this.NoteFontOptions)
+			this._ctrlComponents.Set("Note", this._gui.AddText(Options, Text))
+			this._gui.SetFont()
+		}
 	}
 
 	LoadValue() {
 		global ScriptConfigs
 		switch this._type, false {
+			case "Text":
 			case "Link":
 			case "Dropdown","Radio":
 				configValue := this._blankDefault
@@ -301,6 +326,7 @@ class ConfigurationControl {
 		global ScriptConfigs
 		value := this.Value
 		switch this._type, false {
+			case "Text":
 			case "Link":
 			case "Number":
 				this._ctrlComponents["Input"].Value := value := Max(1, Min(value, 1000))
