@@ -353,10 +353,46 @@ class NestedArray extends Array {
 		Loop super.Length {
 			item := super[A_Index]
 			if (item != this) {
-				cloneArray.Push((Type(item) = Type(this)) ? item.AsArray() : item)
+				item := NestedArray.UnpackArray((Type(item) = Type(this)) ? item.AsArray() : item)
+				cloneArray.Push(item)
 			}
 		}
+		return NestedArray.UnpackArray(cloneArray)
+	}
+
+	/**
+	 * Return an {@link Array} only copy of this {@link NestedArray} and flatten it into an array of arrays
+	 * @returns {Array<Array<T>>}
+	 */
+	AsArray2D() {
+		cloneArray := [],
+		innerArray := [],
+		totalLength := this.TotalLength
+		Loop totalLength {
+			relArrayInfo := this.GetRelativeArrayAndIndex(A_Index)
+			item := relArrayInfo.Array[relArrayInfo.Index]
+			if (item != this) {
+				item := NestedArray.UnpackArray((Type(item) = Type(this)) ? item.AsArray() : item)
+				innerArray.Push(item)
+				if (relArrayInfo.IsLast) {
+					cloneArray.Push(innerArray)
+					innerArray := []
+				}
+			}
+		}
+		if (innerArray.Length > 0) {
+			cloneArray.Push(innerArray)
+		}
 		return cloneArray
+	}
+
+	/**
+	 * Unpack object by recursively checking if it is a packed array (an array with a single array as a child) and return first object that is not
+	 * @param {Object} arrayObj Array to unpack
+	 * @returns {Object}
+	 */
+	static UnpackArray(arrayObj) {
+		return (arrayObj is Array && arrayObj.Length = 1 && arrayObj[1] is Array) ? NestedArray.UnpackArray(arrayObj[1]) : arrayObj
 	}
 }
 

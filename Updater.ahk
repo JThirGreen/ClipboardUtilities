@@ -43,7 +43,9 @@ class Updater {
 	static Version {
 		get {
 			if (StrLen(Updater._version) = 0) {
-				Updater._version := IsSet(U_Version) ? U_Version : FileGetVersion(A_ScriptFullPath)
+				try {
+					Updater._version := IsSet(U_Version) ? U_Version : FileGetVersion(A_ScriptFullPath)
+				}
 			}
 			return Updater._version
 		}

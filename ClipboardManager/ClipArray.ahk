@@ -76,6 +76,35 @@ class ClipArray {
 		}
 	}
 
+	/** @type {Integer} */
+	rowCount {
+		get {
+			return this.clips.AsArray2D().Length
+		}
+	}
+
+	/** @type {Integer} */
+	maxColCount {
+		get {
+			maxCount := 0
+			rows := this.clips.AsArray2D()
+			;reviver(key, val) {
+			;	if (!IsSet(val)) {
+			;		return false
+			;	}
+			;	else if (val is Array) {
+			;		return val
+			;	}
+			;	return true
+			;}
+			;MsgBox(JSON.stringify(rows, reviver))
+			for row in rows {
+				maxCount := Max(maxCount, row.Length)
+			}
+			return maxCount
+		}
+	}
+
 	_folderPath := ""
 	/**
 	 * Path of folder where clip files are located
@@ -690,10 +719,11 @@ class ClipArray {
 	 * @returns {String}
 	 */
 	ToString(mode) {
-		separator := ""
-		stitchMode := ""
-		applyTfMode := true
-		switch StrLower(mode) {
+		separator := "",
+		stitchMode := "",
+		applyTfMode := true,
+		modeSplit := StrSplit(mode, ";")
+		switch StrLower(modeSplit.Get(1,"")) {
 			case "original":
 				separator := "`r`n"
 				stitchMode := "simple"
@@ -731,7 +761,63 @@ class ClipArray {
 			return cbArrayStr
 		}
 		else {
-			return Array2String(this._clips.AsArray(), separator)
+			rows := [], cols := []
+			if (modeSplit.Length > 1) {
+				Loop (modeSplit.Length - 1) {
+					propTypeMatch := "",
+					modeProp := modeSplit[A_Index + 1]
+					RegExMatch(modeProp, "i)^(?<name>row|col)(?<idx>(?:(?:\d+|\d+-\d+)(?:,|$))+)", &propTypeMatch)
+					propType := StrLower(propTypeMatch["name"]),
+					idxRange := propTypeMatch["idx"]
+					if ((propType = "row" || propType = "col") && StrLen(idxRange) > 0) {
+						Loop Parse, idxRange, "," {
+							UpsertIndex(propType = "row" ? rows : cols, A_LoopField)
+						}
+					}
+				}
+			}
+			clipsAsArray := this._clips.AsArray2D(),
+			filteredClipsArray := []
+			if (rows.Length > 0 || cols.Length > 0) {
+				Loop clipsAsArray.Length {
+					if (rows.Length = 0 || (rows.Length >= A_Index && rows.Get(A_Index, false))) {
+						clipsRow := clipsAsArray[A_Index],
+						filteredRow := []
+						if (cols.Length = 0) {
+							filteredRow := clipsRow
+						}
+						else {
+							Loop clipsRow.Length {
+								if (cols.Length >= A_Index && cols.Get(A_Index, false)) {
+									filteredRow.Push(clipsRow[A_Index])
+								}
+							}
+						}
+						filteredClipsArray.Push(filteredRow)
+					}
+				}
+				clipsAsArray := filteredClipsArray
+			}
+			return Array2String(clipsAsArray, separator)
+		}
+
+		UpsertIndex(arr, idxRange) {
+			startIdx := -1, endIdx := idxRange
+			if (InStr(endIdx, "-")) {
+				idxSplit := StrSplit(idxRange)
+				startIdx := idxSplit[1],
+				endIdx := idxSplit[2]
+			}
+			else {
+				startIdx := endIdx
+			}
+			startIdx := Number(startIdx), endIdx := Number(endIdx)
+			if (arr.Length < endIdx) {
+				arr.Length := endIdx
+			}
+			Loop endIdx - startIdx + 1 {
+				arr[A_Index + startIdx - 1] := true
+			}
 		}
 	}
 

@@ -6,6 +6,7 @@
  * Initialize CB Manager menu
  */
 InitCbManagerMenu() {
+	/** @type {Menu} */
 	global CustomContextMenu
 	CustomContextMenu.Insert("4&")
 	CustomContextMenu.Insert("4&", "Clipboard &List", CustomClipboardMenu)
@@ -18,7 +19,10 @@ InitCbManagerMenu() {
  */
 ReloadCustomClipboardMenu()
 {
-	global CbManager, CustomClipboardMenu
+	/** @type {ClipboardManager} */
+	global CbManager
+	/** @type {Menu} */
+	global CustomClipboardMenu
 	if (!CbManager.ReloadCbArrayMenu) {
 		return
 	}
@@ -38,6 +42,7 @@ ReloadCustomClipboardMenu()
  * @returns {Menu}
  */
 BuildCbArrayMenu(cbArray) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	cbArrayMenu := Menu(), cbArrayContentMenu := Menu()
 
@@ -95,6 +100,7 @@ BuildCbArrayMenu(cbArray) {
  * @returns {Menu}
  */
 BuildPasteMenu(cbArray) {
+	/** @type {ClipboardManager} */
 	global CbManager
 
 	pasteMenu := Menu()
@@ -103,6 +109,15 @@ BuildPasteMenu(cbArray) {
 	pasteMenu.Add("(&,) Comma List", pasteFunc.Bind("CommaList"))
 	pasteMenu.Add("&CSV", pasteFunc.Bind("csv"))
 	pasteMenu.Add("&TSV", pasteFunc.Bind("tsv"))
+
+	colCount := cbArray.maxColCount
+	if (colCount > 0) {
+		colPasteMenu := Menu()
+		Loop colCount {
+			colPasteMenu.Add(String(A_Index), pasteFunc.Bind("csv;col" . String(A_Index)))
+		}
+		pasteMenu.Add("Paste Column", colPasteMenu)
+	}
 	pasteMenu.Default := "As Copied"
 	return pasteMenu
 
@@ -116,7 +131,10 @@ BuildPasteMenu(cbArray) {
  */
 BuildClipChangerMenu()
 {
-	global CbManager, CustomClipboardMenu
+	/** @type {ClipboardManager} */
+	global CbManager
+	/** @type {Menu} */
+	global CustomClipboardMenu
 
 	/** @type {Menu} */
 	local clipChangerMenu := Menu(),
@@ -174,6 +192,7 @@ BuildClipChangerMenu()
 }
 
 BuildClipChangerActionsMenu() {
+	/** @type {Menu} */
 	actionsMenu := Menu()
 	actionsMenu.Add("Delete All", ActionFunc.Bind("ClearAll"))
 	actionsMenu.Add("Keep Only Default", ActionFunc.Bind("ClearAll", [true]))
@@ -202,6 +221,7 @@ BuildClipChangerActionsMenu() {
  * @param {Integer} index Index of clip to select and paste
  */
 ClipMenuAction(cbArray, index, *) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	cbArray.PasteClip(index, true)
 	CbManager.ReloadCbArrayMenu := true
@@ -212,6 +232,7 @@ ClipMenuAction(cbArray, index, *) {
  * @param {Integer} id ID of CB array to clear
  */
 ClearCbArray(id, *) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.Clear(id)
 }

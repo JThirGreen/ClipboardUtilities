@@ -1,11 +1,11 @@
 #Requires AutoHotkey v2.0
 #Include main.ahk
+#Include ../Utilities/HotKeyTools.ahk
 #UseHook true
 
 CoordMode("Mouse")
 CoordMode("ToolTip")
 CoordMode("Menu")
-
 
 ;-----------------------------+
 ;     hotkey definitions      |
@@ -21,6 +21,7 @@ CoordMode("Menu")
 ; Copy selected text to clip array
 ^+c::
 {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.DisableCbChange()
 	InitClipboard()
@@ -32,6 +33,7 @@ CoordMode("Menu")
 ; Swap selected text with clipboard
 ^+x::
 {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.DisableCbChange()
 	SwapTextWithClipboard()
@@ -43,6 +45,7 @@ CoordMode("Menu")
 ^v::
 ^+v::
 {
+	/** @type {ClipboardManager} */
 	global CbManager
 	if (ThisHotkey = CbManager.MainHotKey) {
 		CbManager.DisableCbChange()
@@ -63,10 +66,13 @@ CoordMode("Menu")
 	return
 
 	CheckReleased() {
-		if (!GetKeyState("Ctrl", "P") || IsShiftNeeded()) {
+		if (!GetHotKeyState(CbManager.MainHotKey, "P")) {
 			SetTimer(, 0)
 			CbManager.CbArrayStatus := "end"
 			CbManagerAction()
+		}
+		else {
+			CbManager.LastActionOn := A_TickCount
 		}
 	}
 }
@@ -75,6 +81,7 @@ CoordMode("Menu")
 ^v up::
 ^+v up::
 {
+	/** @type {ClipboardManager} */
 	global CbManager
 	nativeTimeout := CbManager.NativeHotKeyTimeout
 	switch CbManager.CbArrayStatus {
@@ -89,6 +96,7 @@ CoordMode("Menu")
 
 ~*LButton::
 {
+	/** @type {ClipboardManager} */
 	global CbManager
 	if (IsSet(CbManager))
 		CbManager.Tooltip(false)
@@ -124,6 +132,7 @@ CoordMode("Menu")
 	v & LButton::
 	v & Enter::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "start","ready","newSelected","pasteCurrent":
@@ -138,6 +147,7 @@ CoordMode("Menu")
 	v & XButton2::
 	v & Browser_Forward::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "start","ready","pasteNext":
@@ -155,6 +165,7 @@ CoordMode("Menu")
 	v & XButton1::
 	v & Browser_Back::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "start","ready","pastePrev":
@@ -169,6 +180,7 @@ CoordMode("Menu")
 	; Ctrl + Shift? + V + right click
 	v & RButton::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		CbManager.CbArrayStatus := "paused"
 		CbManagerAction()
@@ -179,6 +191,7 @@ CoordMode("Menu")
 	; Ctrl + Shift? + V + Backspace
 	v & BS::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "start","ready","newSelected","removePrev":
@@ -190,6 +203,7 @@ CoordMode("Menu")
 	; Ctrl + Shift? + V + Delete
 	v & Del::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "start","ready","newSelected","removeCurrent":
@@ -208,6 +222,7 @@ CoordMode("Menu")
 	v & l up::
 	v & , up::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		CbManager.CbArrayStatus := "ready"
 	}
@@ -219,6 +234,7 @@ CoordMode("Menu")
 	v & XButton1 up::
 	v & Browser_Back up::
 	{
+		/** @type {ClipboardManager} */
 		global CbManager
 		switch CbManager.CbArrayStatus {
 			case "removeCurrent","removePrev","removeNext":
@@ -247,12 +263,16 @@ CoordMode("Menu")
 	; Ctrl + Shift? + V + L
 	v & l::
 	{
+		/** @type {ClipboardManager} */
+		global CbManager
 		CbManager.Paste("List")
 	}
 
 	; Ctrl + Shift? + V + ,
 	v & ,::
 	{
+		/** @type {ClipboardManager} */
+		global CbManager
 		CbManager.Paste("commalist")
 	}
 
@@ -327,6 +347,7 @@ CoordMode("Menu")
  * @param {Integer} increment Number of steps to shift selection
  */
 customClipboardWheelAction(increment) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.DisableCbChange()
 	switch CbManager.CbArrayStatus {
@@ -344,6 +365,7 @@ customClipboardWheelAction(increment) {
  * @param {Integer} increment Number of steps to shift selection
  */
 CbArrayScroll(increment) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.ShiftSelect(increment, true)
 	CbManager.ReloadCbArrayMenu := true
@@ -355,6 +377,7 @@ CbArrayScroll(increment) {
  * Timer compatible function for applying scroll selection to active clipboard
  */
 CbArrayScrollEnd() {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.Apply()
 }
@@ -363,13 +386,14 @@ CbArrayScrollEnd() {
  * Function for executing CB Manager actions based on CB array status
  */
 CbManagerAction(forceEnd := false) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	SetTimer(EndAction, 0)
 	if (!forceEnd) {
 		CbManager.Tooltip(false)
 		switch CbManager.CbArrayStatus {
 			case "start":
-				CbManager.TooltipDelayed(CbManager.ClipListSelectorDelay)
+				CbManager.TooltipDelayed(CbManager.ClipListSelectorDelay, 0)
 			case "ready":
 			case "paused":
 			case "newSelected":
@@ -414,6 +438,7 @@ CbManagerAction(forceEnd := false) {
 	 * Local function for cleaning up pending action if outside of expected states
 	 */
 	EndAction() {
+		/** @type {ClipboardManager} */
 		global CbManager
 		msSinceLastAction := A_TickCount - CbManager.LastActionOn
 		if (msSinceLastAction > 10000 && CbManager.CbArrayStatus != "paused") {
@@ -433,12 +458,15 @@ CbManagerAction(forceEnd := false) {
 }
 
 IsShiftNeeded() {
+	/** @type {ClipboardManager} */
 	global CbManager
 	return CbManager.MainHotKey = "^+v" && !GetKeyState("Shift", "P")
 }
 
 OpenClipboardMenu() {
-	global mPosX, mPosY, CbManager
+	global mPosX, mPosY
+	/** @type {ClipboardManager} */
+	global CbManager
 	CbManager.DisableCbChange()
 	MouseGetPos(&mPosX, &mPosY)
 	InitClipboard()
@@ -448,6 +476,7 @@ OpenClipboardMenu() {
 }
 
 SelectCbArray(name) {
+	/** @type {ClipboardManager} */
 	global CbManager
 	CbManager.SelectCbArray(name)
 	CbManagerAction(true)

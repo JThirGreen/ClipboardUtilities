@@ -564,7 +564,7 @@ class JSON {
             if (IsObject(obj) && obj.HasMethod("toJSON")) {
                 obj := (obj.toJSON.MinParams > 1) ? obj.toJSON(name) : obj.toJSON()
             }
-            thisObj := IsSet(name) ? executeReplacer(name, obj, &keepObj, (isRoot ?? false)) : obj
+            thisObj := executeReplacer(name ?? "", obj, &keepObj, (isRoot ?? false))
 
             if (!keepObj) {
                 return ""

@@ -251,8 +251,8 @@ DSVToArray(str, delimiter := "", &delimiterUsed?) {
 	else if (delimiter = "") {
 		return [str]
 	}
-	else if (delimiter = "`n" || (!InStr(str, "`"") && !InStr(str, "`n"))) {
-		return StrSplit(TextTools.CleanNewLines(str), delimiter)
+	else if (!InStr(str, "`"") && !InStr(str, "`n")) {
+		return SimpleSplit(delimiter)
 	}
 	else {
 		strArray := [], lineArray := []
@@ -262,7 +262,7 @@ DSVToArray(str, delimiter := "", &delimiterUsed?) {
 		Loop Parse, str {
 			if (inQuot) {
 				if (!quotMode) {
-					return []
+					return SimpleSplit()
 				}
 
 				if (A_LoopField = "`"") {
@@ -297,7 +297,7 @@ DSVToArray(str, delimiter := "", &delimiterUsed?) {
 							strElem .= A_LoopField
 						}
 						else {
-							return []
+							return SimpleSplit()
 						}
 				}
 			}
@@ -309,6 +309,10 @@ DSVToArray(str, delimiter := "", &delimiterUsed?) {
 			strArray.Push(lineArray)
 		}
 		return strArray
+	}
+
+	SimpleSplit(delimiter := "`n") {
+		return StrSplit(TextTools.CleanNewLines(str), delimiter)
 	}
 }
 
