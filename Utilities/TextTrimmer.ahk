@@ -67,19 +67,18 @@ class TextTrimmer {
 			if (this.lineCount > 1) {
 				str := "[" . this.lineCount . " lines]" . str
 			}
-
-			charCounter := "(" . Format("{:d}", this.textLength) . ")"
 			
 			switch(this.trimMode) {
 				case "middle":
-					trimIndex := (this.trimTextWidth // 2) - 1
+					trimIndex := (this.trimTextWidth // 2) - 1,
+					postTrimStr := this.postTrimComponents.Length > 0 ? TextTrimmer.Array2Str(this.postTrimComponents) : str
 					str := SubStr(str, 1, trimIndex) . "…"
-					str .= SubStr(TextTrimmer.Array2Str(this.postTrimComponents) . charCounter, (1 + trimIndex - this.trimTextWidth))
+					str .= SubStr(postTrimStr, (1 + trimIndex - this.trimTextWidth))
 				case "end":
-					trimIndex := this.trimTextWidth - StrLen(charCounter)
-					str := SubStr(str, 1, trimIndex - 1) . "…" . charCounter
+					trimIndex := this.trimTextWidth - 1
+					str := SubStr(str, 1, trimIndex) . "…"
 			}
-			return str
+			return str . "(" . Format("{:d}", this.textLength) . ")"
 		}
 	}
 
@@ -115,19 +114,16 @@ class TextTrimmer {
 		/** @type {String} */
 		currChar := "", prevChar := "",
 		this.textLength := StrLen(str),
-		trimIndex := (this.trimTextWidth // 2) - 1,
-		loopSkipToIndex := 0,
+		preTrimOnly := false,
 
-		this.lineCount := (this.textLength > 0) ? 1 : 0
+		this.lineCount := 0
+		if (this.textLength > 0) {
+			StrReplace(str, "`n", "`n", , &newLineCount)
+			this.lineCount := 1 + newLineCount
+		}
 
 		Loop Parse, str
 		{
-			if (A_LoopField = "`n") {
-				this.lineCount++
-			}
-			if (loopSkipToIndex > A_Index) {
-				continue
-			}
 			if (charCount = 0 && A_LoopField ~= "\s")
 				switch (A_LoopField) {
 					case "`t":
@@ -140,25 +136,37 @@ class TextTrimmer {
 				if (charCount = 0 && this.leadingSpacesCount > 0) {
 					this.preTrimComponents := StrSplit(TextTrimmer.TranslateSpaces(this.leadingSpacesCount))
 				}
-				currChar := TextTrimmer.TranslateCharacters(A_LoopField)
+				currChar := TextTrimmer.TranslateCharacter(A_LoopField)
 
-				if (charCount <= this.trimTextWidth) {
+				if (charCount <= this.trimTextWidth || preTrimOnly) {
 					this.preTrimComponents.Push(currChar)
-				}
-				else if (loopSkipToIndex > 0) {
-					this.postTrimComponents.Push(currChar)
 				}
 
 				charCount++
 			}
-			if (loopSkipToIndex = 0 && charCount > this.trimTextWidth) {
+			; Check if trim width has been reached
+			if (!preTrimOnly && charCount > this.trimTextWidth) {
+				remainingCharCount := (this.textLength - A_Index)
 				if (this.trimMode = "") {
-					this.trimMode := ((this.textLength - A_Index) > trimIndex) ? "middle" : "end"
+					; If not set, then use 'end' trim if very few characters are left
+					this.trimMode := (remainingCharCount > 4) ? "middle" : "end"
 				}
 				if (this.trimMode = "middle") {
-					loopSkipToIndex := (this.textLength + trimIndex - this.trimTextWidth)
+					; If at least another trim width worth amount of characters are left, then optimize by skipping to near the end
+					if (remainingCharCount >= this.trimTextWidth) {
+						; Skip to the last full trim width worth of characters to account for possible character removals
+						Loop Parse, SubStr(str, -this.trimTextWidth) {
+							this.postTrimComponents.Push(TextTrimmer.TranslateCharacter(A_LoopField))
+						}
+						break
+					}
+					else {
+						; Otherwise, resume looping while preventing rerunning trim check logic
+						preTrimOnly := true
+					}
 				}
 				if (this.trimMode = "end") {
+					; If 'end' trim, then break loop as no further parsing is necessary
 					break
 				}
 			}
@@ -199,7 +207,7 @@ class TextTrimmer {
 	 * @param {String} char
 	 * @returns {String}
 	 */
-	static TranslateCharacters(char) {
+	static TranslateCharacter(char) {
 		if (StrLen(char) = 1) {
 			switch (char) {
 				case "`r":
