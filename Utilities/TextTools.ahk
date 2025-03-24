@@ -382,7 +382,7 @@ class TextTools {
     static WrapTextNamed(txt, wrapName, wrapMode) {
         TextTools.GetWrappersFromMode(wrapMode, &opener, &closer)
     
-        if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./]+)(?P<postspace>\s*)$", &wrapNameMatch)) {
+        if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./:#@]+)(?P<postspace>\s*)$", &wrapNameMatch)) {
             wrapName := wrapNameMatch["prespace"] . wrapNameMatch["wrapname"] . opener . closer . wrapNameMatch["postspace"]
         }
         valueToPaste := ""

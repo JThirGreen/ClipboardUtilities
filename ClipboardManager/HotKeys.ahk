@@ -370,7 +370,7 @@ CbArrayScroll(increment) {
 	CbManager.ShiftSelect(increment, true)
 	CbManager.ReloadCbArrayMenu := true
 	CbManager.Tooltip(true, 0)
-	SetTimer(CbArrayScrollEnd, -100)
+	SetTimer(CbArrayScrollEnd, -500)
 }
 
 /**
@@ -385,52 +385,51 @@ CbArrayScrollEnd() {
 /**
  * Function for executing CB Manager actions based on CB array status
  */
-CbManagerAction(forceEnd := false) {
+CbManagerAction() {
 	/** @type {ClipboardManager} */
 	global CbManager
 	SetTimer(EndAction, 0)
-	if (!forceEnd) {
-		CbManager.Tooltip(false)
-		switch CbManager.CbArrayStatus {
-			case "start":
-				CbManager.TooltipDelayed(CbManager.ClipListSelectorDelay, 0)
-			case "ready":
-			case "paused":
-			case "newSelected":
-			case "pasteCurrent":
-				CbManager.PasteClip()
-			case "pastePrev":
-				CbManager.DisableCbChange()
-				CbManager.Prev()
-				CbManager.PasteClip()
-				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
-			case "pasteNext":
-				CbManager.DisableCbChange()
-				CbManager.Next()
-				CbManager.PasteClip()
-				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
-			case "removeCurrent":
-				CbManager.DisableCbChange()
-				CbManager.RemoveSelected()
-				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
-			case "removePrev":
-				CbManager.DisableCbChange()
-				CbManager.RemoveSelected(-1)
-				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
-			case "removeNext":
-				CbManager.DisableCbChange()
-				CbManager.RemoveSelected(1)
-				CbManager.ReloadCbArrayMenu := true
-				CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
-			case "end":
-				CbManager.EnableCbChange()
-			default:
-				EndAction()
-		}
+	CbManager.Tooltip(false)
+	switch CbManager.CbArrayStatus {
+		case "start":
+			CbManager.TooltipDelayed(CbManager.ClipListSelectorDelay, 0)
+		case "ready":
+		case "paused":
+		case "newSelected":
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "pasteCurrent":
+			CbManager.PasteClip()
+		case "pastePrev":
+			CbManager.DisableCbChange()
+			CbManager.Prev()
+			CbManager.PasteClip()
+			CbManager.ReloadCbArrayMenu := true
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "pasteNext":
+			CbManager.DisableCbChange()
+			CbManager.Next()
+			CbManager.PasteClip()
+			CbManager.ReloadCbArrayMenu := true
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "removeCurrent":
+			CbManager.DisableCbChange()
+			CbManager.RemoveSelected()
+			CbManager.ReloadCbArrayMenu := true
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "removePrev":
+			CbManager.DisableCbChange()
+			CbManager.RemoveSelected(-1)
+			CbManager.ReloadCbArrayMenu := true
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "removeNext":
+			CbManager.DisableCbChange()
+			CbManager.RemoveSelected(1)
+			CbManager.ReloadCbArrayMenu := true
+			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
+		case "end":
+			CbManager.EnableCbChange()
+		default:
+			EndAction()
 	}
 	CbManager.LastActionOn := A_TickCount
 	
@@ -478,6 +477,7 @@ OpenClipboardMenu() {
 SelectCbArray(name) {
 	/** @type {ClipboardManager} */
 	global CbManager
-	CbManager.SelectCbArray(name)
-	CbManagerAction(true)
+	CbManager.SelectCbArray(name, false)
+	CbManager.CbArrayStatus := "newSelected"
+	CbManagerAction()
 }

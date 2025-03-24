@@ -88,8 +88,11 @@ GetDisplayFromCoords(x, y, dispLeft?, dispTop?, dispRight?, dispBottom?, workAre
 	monitorCount := MonitorGetCount()
 	if (monitorCount > 1) {
 		Loop monitorCount {
-			GetBoundingCoords(A_Index)
+			GetBoundingCoords(A_Index, false)
 			if (%dispLeft% <= x && x < %dispRight% && %dispTop% <= y && y < %dispBottom%) {
+				if (workAreaOnly) {
+					GetBoundingCoords(A_Index, true)
+				}
 				return A_Index
 			}
 		}
@@ -103,8 +106,8 @@ GetDisplayFromCoords(x, y, dispLeft?, dispTop?, dispRight?, dispBottom?, workAre
 	%dispLeft% := -1, %dispTop% := -1, %dispRight% := -1, %dispBottom% := -1
 	return -1
 
-	GetBoundingCoords(n) {
-		if (workAreaOnly) {
+	GetBoundingCoords(n, workAreaCoords:=workAreaOnly) {
+		if (workAreaCoords) {
 			MonitorGetWorkArea(n, dispLeft?, dispTop?, dispRight?, dispBottom?)
 		}
 		else {
