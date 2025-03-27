@@ -111,12 +111,20 @@ BuildPasteMenu(cbArray) {
 	pasteMenu.Add("&TSV", pasteFunc.Bind("tsv"))
 
 	colCount := cbArray.maxColCount
-	if (colCount > 0) {
+	if (colCount > 1) {
 		colPasteMenu := Menu()
+		colPasteMenu.Add("Odd", pasteFunc.Bind("csv;col2n+1"))
+		colPasteMenu.Add("Even", pasteFunc.Bind("csv;col2n"))
 		Loop colCount {
 			colPasteMenu.Add(String(A_Index), pasteFunc.Bind("csv;col" . String(A_Index)))
 		}
-		pasteMenu.Add("Paste Column", colPasteMenu)
+		pasteMenu.Add("Paste C&olumns", colPasteMenu)
+	}
+	if (cbArray.rowCount > 1) {
+		rowPasteMenu := Menu()
+		rowPasteMenu.Add("Odd", pasteFunc.Bind("csv;row2n+1"))
+		rowPasteMenu.Add("Even", pasteFunc.Bind("csv;row2n"))
+		pasteMenu.Add("Paste &Rows", rowPasteMenu)
 	}
 	pasteMenu.Default := "As Copied"
 	return pasteMenu

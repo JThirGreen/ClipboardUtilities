@@ -214,7 +214,14 @@ class CustomClip {
 		get {
 			if (!this.HasOwnProp("_title")) {
 				/** @type {TextTrimmer} */
-				clipMenuText := TextTrimmer((this._type = "text") ? TextTools.CleanNewLines(this.text) : (this._type . " data (" . this.sizeReadable . ")"))
+				local clipMenuText
+				if (this._type = "text") {
+					clipMenuText := TextTrimmer(TextTools.CleanNewLines(this.text))
+				}
+				else {
+					clipMenuText := TextTrimmer(this._type . " data (" . this.sizeReadable . ")")
+					clipMenuText.showCharacterCount := false
+				}
 				this._title := clipMenuText.Value
 			}
 			return this._title

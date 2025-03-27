@@ -58,7 +58,7 @@ CoordMode("Menu")
 				CbManager.LastActionOn := A_TickCount
 		}
 	
-		SetTimer(CheckReleased, -50)
+		SetTimer(CheckReleased, 50)
 	}
 	else {
 		Send(ThisHotkey)

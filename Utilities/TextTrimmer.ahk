@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0 
-
+#Include TextTools.ahk
 
 /**
  * Parses, stores, and trims text
@@ -59,6 +59,8 @@ class TextTrimmer {
 	 */
 	leadingSpacesCount := 0
 
+	showCharacterCount := true
+
 	/** @type {String} */
 	Value {
 		get {
@@ -78,7 +80,10 @@ class TextTrimmer {
 					trimIndex := this.trimTextWidth - 1
 					str := SubStr(str, 1, trimIndex) . "…"
 			}
-			return str . "(" . Format("{:d}", this.textLength) . ")"
+			if (this.showCharacterCount) {
+				str .= TextTools.ToSuperscript("(" . Format("{:d}", this.textLength) . ")")
+			}
+			return str
 		}
 	}
 
@@ -88,39 +93,45 @@ class TextTrimmer {
 	 * @param {true|false} middleTrim Controls whether middle trimming is enabled
 	 */
 	__New(val, trimWidth?, middleTrim?) {
-		if (IsObject(val)) {
-			this.preTrimComponents  := ["[binary data]"]
-			return
-		}
+		this.Load(val, trimWidth?, middleTrim?)
+	}
 
+	/**
+	 * Parse and load string
+	 * @param {String} str
+	 * @param {Integer} trimWidth Character count to trim text to
+	 * @param {true|false} middleTrim Controls whether middle trimming is enabled
+	 */
+	Load(str, trimWidth?, middleTrim?) {
 		if (IsSet(trimWidth)) {
 			this.trimTextWidth := trimWidth
 		}
 		if (IsSet(middleTrim)) {
 			this.trimMode := middleTrim ? "" : "end"
 		}
-		
-		this.Load(val)
-	}
 
-	/**
-	 * Parse and load string
-	 * @param {String} str
-	 */
-	Load(str) {
+		if (IsObject(str)) {
+			this.preTrimComponents  := ["[binary data]"]
+			this.trimMode := ""
+			return
+		}
+
 		this.leadingSpacesCount := 0
-		/** @type {Integer} */
-		charCount := 0
-		/** @type {String} */
-		currChar := "", prevChar := "",
 		this.textLength := StrLen(str),
-		preTrimOnly := false,
-
 		this.lineCount := 0
 		if (this.textLength > 0) {
 			StrReplace(str, "`n", "`n", , &newLineCount)
 			this.lineCount := 1 + newLineCount
 		}
+		else {
+			return
+		}
+		/** @type {Integer} */
+		charCount := 0,
+		/** @type {String} */
+		currChar := "", prevChar := "",
+		/** @type {true|false} */
+		preTrimOnly := false
 
 		Loop Parse, str
 		{

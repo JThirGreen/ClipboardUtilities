@@ -60,6 +60,24 @@ class SubsetBounds {
 }
 
 /**
+ * Resize a given array and initialize every element with a given value
+ * @template T
+ * @param {Array<T>} arr Array to initialize
+ * @param {Integer} length Size to initialize array to
+ * @param {T} default Value to initialize array with
+ * @returns {Array<T>}
+ */
+InitializeArray(arr, length, default?) {
+	if (arr is Array) {
+		arr.Length := length
+		Loop length {
+			arr[A_Index] := default ?? unset
+		}
+	}
+	return arr
+}
+
+/**
  * Search array for a specified value
  * @template T
  * @param {Array<T>} haystack array to search

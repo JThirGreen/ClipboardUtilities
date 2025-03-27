@@ -253,6 +253,22 @@ class TextTools {
     }
 
     /**
+     * Insert a string into another string
+     * @param {String} str1 String to be modified
+     * @param {String} str2 String to be inserted
+     * @param {Integer} pos Position of str1 to insert str2 into
+     */
+    static InsertString(str1, str2, pos) {
+        if (pos <= 0) {
+            return str2 . str1
+        }
+        else if (pos < StrLen(str1)) {
+            return SubStr(str1, 1, pos) . str2 . SubStr(str1, pos + 1)
+        }
+        return str1 . str2
+    }
+
+    /**
      * Return true if {haystack} starts with {needle}, otherwise return "false". Comparison is case sensitive by default.
      * @param {String} haystack
      * @param {String} needle
@@ -274,6 +290,80 @@ class TextTools {
             txt := RegExReplace(StrTitle(txt), "([a-zA-Z])[ \t]*([A-Z])", "$1$2")
         }
         return txt
+    }
+
+    static ToSubscript(str) {
+        static subscriptMap := Map(
+            "0", Chr(0x2080),
+            "1", Chr(0x2081),
+            "2", Chr(0x2082),
+            "3", Chr(0x2083),
+            "4", Chr(0x2084),
+            "5", Chr(0x2085),
+            "6", Chr(0x2086),
+            "7", Chr(0x2087),
+            "8", Chr(0x2088),
+            "9", Chr(0x2089),
+            "+", Chr(0x208A),
+            "-", Chr(0x208B),
+            "=", Chr(0x208C),
+            "(", Chr(0x208D),
+            ")", Chr(0x208E),
+            Chr(0x2A2F), Chr(0x2093), ; ⨯ (vector/cross product)
+            Chr(0xD7), Chr(0x2093), ; × (multiplication sign)
+            "X", Chr(0x2093),
+            "x", Chr(0x2093)
+        )
+        newStr := ""
+        Loop Parse, str {
+            newStr .= subscriptMap.Get(A_LoopField, A_LoopField)
+        }
+        return newStr
+    }
+
+    static ToSuperscript(str) {
+        static superscriptMap := Map(
+            "0", Chr(0x2070),
+            "1", Chr(0x00B9),
+            "2", Chr(0x00B2),
+            "3", Chr(0x00B3),
+            "4", Chr(0x2074),
+            "5", Chr(0x2075),
+            "6", Chr(0x2076),
+            "7", Chr(0x2077),
+            "8", Chr(0x2078),
+            "9", Chr(0x2079),
+            "+", Chr(0x207A),
+            "-", Chr(0x207B),
+            "=", Chr(0x207C),
+            "(", Chr(0x207D),
+            ")", Chr(0x207E)
+        )
+        newStr := ""
+        Loop Parse, str {
+            newStr .= superscriptMap.Get(A_LoopField, A_LoopField)
+        }
+        return newStr
+    }
+
+    static ToNegativeCircled(str) {
+        static superscriptMap := Map(
+            "0", Chr(0x24FF),
+            "1", Chr(0x2776),
+            "2", Chr(0x2777),
+            "3", Chr(0x2778),
+            "4", Chr(0x2779),
+            "5", Chr(0x277A),
+            "6", Chr(0x277B),
+            "7", Chr(0x277C),
+            "8", Chr(0x277D),
+            "9", Chr(0x277E)
+        )
+        newStr := ""
+        Loop Parse, str {
+            newStr .= superscriptMap.Get(A_LoopField, A_LoopField)
+        }
+        return newStr
     }
 
     /**
@@ -382,7 +472,7 @@ class TextTools {
     static WrapTextNamed(txt, wrapName, wrapMode) {
         TextTools.GetWrappersFromMode(wrapMode, &opener, &closer)
     
-        if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\./:#@]+)(?P<postspace>\s*)$", &wrapNameMatch)) {
+        if (RegExMatch(wrapName, "^(?P<prespace>\s*)(?P<wrapname>[0-9a-zA-Z_\-\./:#@]+)(?P<postspace>\s*)$", &wrapNameMatch)) {
             wrapName := wrapNameMatch["prespace"] . wrapNameMatch["wrapname"] . opener . closer . wrapNameMatch["postspace"]
         }
         valueToPaste := ""

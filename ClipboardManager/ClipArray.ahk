@@ -54,6 +54,10 @@ class ClipArray {
 		set => this._name := value
 	}
 
+	Title {
+		get => TextTools.ToNegativeCircled(this.Name)
+	}
+
 	/**
 	 * For assignment of optional ID 
 	 * @type {Integer}
@@ -76,32 +80,58 @@ class ClipArray {
 		}
 	}
 
-	/** @type {Integer} */
-	rowCount {
+	/** @type {Array<Array<CustomClip>>} */
+	_clips2D := unset
+	/**
+	 * {@link CustomClip} clips stored as 2D array
+	 * @type {Array<Array<CustomClip>>}
+	 */
+	clips2D {
 		get {
-			return this.clips.AsArray2D().Length
+			if (!this.HasOwnProp("_clips2D")) {
+				this._clips2D := this.clips.AsArray2D()
+				if (this._clips2D.Length = 1 && this._clips2D[1] is Array) {
+					; If clips are only in a single row, then transpose to a single column instead
+					this._clips2D := this._clips2D[1]
+					Loop this._clips2D.Length {
+						this._clips2D[A_Index] := [this._clips2D[A_Index]]
+					}
+				}
+			}
+			return this._clips2D
 		}
 	}
 
 	/** @type {Integer} */
+	rowCount {
+		get {
+			return this.clips2D.Length
+		}
+	}
+
+	/** @type {Integer} */
+	_maxColCount := unset
+	/** @type {Integer} */
 	maxColCount {
 		get {
-			maxCount := 0
-			rows := this.clips.AsArray2D()
-			;reviver(key, val) {
-			;	if (!IsSet(val)) {
-			;		return false
-			;	}
-			;	else if (val is Array) {
-			;		return val
-			;	}
-			;	return true
-			;}
-			;MsgBox(JSON.stringify(rows, reviver))
-			for row in rows {
-				maxCount := Max(maxCount, row.Length)
+			if (!this.HasOwnProp("_maxColCount")) {
+				this._maxColCount := 0,
+				rows := this.clips2D
+				;reviver(key, val) {
+				;	if (!IsSet(val)) {
+				;		return false
+				;	}
+				;	else if (val is Array) {
+				;		return val
+				;	}
+				;	return true
+				;}
+				;MsgBox(JSON.stringify(rows, reviver))
+				for row in rows {
+					this._maxColCount := Max(this._maxColCount, row.Length)
+				}
 			}
-			return maxCount
+			return this._maxColCount
 		}
 	}
 
@@ -227,6 +257,21 @@ class ClipArray {
 	TotalLength => this._clips.TotalLength
 
 	/**
+	 * Generate and return text used to denote size of array
+	 * @type {String}
+	 */
+	SizeText {
+		get {
+			if (this.rowCount > 1 && this.maxColCount > 1) {
+				return this.maxColCount . Chr(0x2A2F) . this.rowCount
+			}
+			else {
+				return String(this.TotalLength)
+			}
+		}
+	}
+
+	/**
 	 * Generate and return text used for tooltip
 	 * @type {String}
 	 */
@@ -242,7 +287,11 @@ class ClipArray {
 	 */
 	MenuText {
 		get {
-			menuText := this.Name . " (" . this.TotalLength . ") " . this.Category
+			menuText := this.Title
+			if (StrLen(this.Category) > 0) {
+				menuText .= " [" . this.Category . "]"
+			}
+			menuText .= " (" . this.SizeText . ")"
 			return menuText
 		}
 	}
@@ -251,11 +300,12 @@ class ClipArray {
 	 * Remove all stored {@link CustomClip} clips and reset selected index
 	 */
 	Clear(full := false) {
-		this._clips := NestedArray()
+		this._clips := NestedArray(),
 		this.selectedIdx := -1
 		if (full) {
 			this.Category := ""
 		}
+		this.ResetCaches()
 	}
 
 	/**
@@ -274,6 +324,7 @@ class ClipArray {
 			newIdx := (this.selectedIdx >= (index + length)) ? (this.selectedIdx - length) : (index)
 			this.Select(Min(newIdx, this.TotalLength), soft)
 		}
+		this.ResetCaches()
 	}
 
 	/**
@@ -284,6 +335,7 @@ class ClipArray {
 	 */
 	Push(clips*) {
 		this._clips.Push(ClipArray.Array2Clips(clips, (this.trimBulkCopy ? "Trim" : "")))
+		this.ResetCaches()
 	}
 
 	/**
@@ -673,6 +725,14 @@ class ClipArray {
 	}
 
 	/**
+	 * Reset properties used for caching
+	 */
+	ResetCaches() {
+		this.DeleteProp("_clips2D"),
+		this.DeleteProp("_maxColCount")
+	}
+
+	/**
 	 * Load string as array to replace clip array and select the first clip
 	 * 
 	 * If {mode} is not valid, then string is instead simply added to current clip array
@@ -751,32 +811,36 @@ class ClipArray {
 				if (applyTfMode && this.trimBulkCopy) {
 					clipStr := Trim(clipStr)
 				}
-				if (StrLen(clipStr)) {
-					if (StrLen(cbArrayStr) > 1) {
-						cbArrayStr .= separator
-					}
-					cbArrayStr .= clipStr
+				if (StrLen(cbArrayStr) > 1) {
+					cbArrayStr .= separator
 				}
+				cbArrayStr .= clipStr
 			}
 			return cbArrayStr
 		}
 		else {
+			clipsAsArray := this.clips2D,
 			rows := [], cols := []
 			if (modeSplit.Length > 1) {
 				Loop (modeSplit.Length - 1) {
 					propTypeMatch := "",
 					modeProp := modeSplit[A_Index + 1]
-					RegExMatch(modeProp, "i)^(?<name>row|col)(?<idx>(?:(?:\d+|\d+-\d+)(?:,|$))+)", &propTypeMatch)
+					RegExMatch(modeProp, "i)^(?<name>row|col)(?<idx>(?:(?:\d+|\d+-\d+|\d+n\s*(?:[+\-]\s*-?\d+)?)(?:,|$))+)", &propTypeMatch)
 					propType := StrLower(propTypeMatch["name"]),
 					idxRange := propTypeMatch["idx"]
 					if ((propType = "row" || propType = "col") && StrLen(idxRange) > 0) {
+						if (propType = "row" && rows.Length = 0) {
+							InitializeArray(rows, this.rowCount, false)
+						}
+						else if (cols.Length = 0) {
+							InitializeArray(cols, this.maxColCount, false)
+						}
 						Loop Parse, idxRange, "," {
 							UpsertIndex(propType = "row" ? rows : cols, A_LoopField)
 						}
 					}
 				}
 			}
-			clipsAsArray := this._clips.AsArray2D(),
 			filteredClipsArray := []
 			if (rows.Length > 0 || cols.Length > 0) {
 				Loop clipsAsArray.Length {
@@ -801,22 +865,57 @@ class ClipArray {
 			return Array2String(clipsAsArray, separator)
 		}
 
+		/**
+		 * Set elements of array to true based on idxRange
+		 * @param {Array<0|1>} arr
+		 * @param {String} idxRange String to parse for determining indexes
+		 * 
+		 * X : individual index
+		 * 
+		 * X-Y : range of indexes (X <= Y)
+		 * 
+		 * Xn[+Y] : indexes = (X * n) + Y for "n" as all integers >= 0, Y is optional
+		 */
 		UpsertIndex(arr, idxRange) {
-			startIdx := -1, endIdx := idxRange
-			if (InStr(endIdx, "-")) {
+			; Handle Xn[+Y]
+			if (InStr(idxRange, "n")) {
+				RegExMatch(idxRange, "i)^(?<multiplier>\d)+n\s*(?:(?<operator>[+\-])\s*(?<offset>-?\d+))?$", &rangeMatch)
+				stepSize := Number(rangeMatch["multiplier"]),
+				offset := IsNumber(rangeMatch["offset"]) ? Number(rangeMatch["offset"]) : 0,
+				n := 0
+				if (rangeMatch["offset"] = "-") {
+					offset := 0 -offset
+				}
+				if (stepSize > 0) {
+					Loop {
+						idx := (stepSize * n) + offset
+						if (idx > 0) {
+							if (idx <= arr.Length) {
+								arr[idx] := true
+							}
+							else {
+								break
+							}
+						}
+						++n
+					}
+				}
+			}
+			; Handle X-Y
+			else if (InStr(idxRange, "-")) {
 				idxSplit := StrSplit(idxRange)
-				startIdx := idxSplit[1],
-				endIdx := idxSplit[2]
+				startIdx := Number(idxSplit[1]),
+				endIdx := Number(idxSplit[2])
+				if (arr.Length < endIdx) {
+					arr.Length := endIdx
+				}
+				Loop endIdx - startIdx + 1 {
+					arr[A_Index + startIdx - 1] := true
+				}
 			}
-			else {
-				startIdx := endIdx
-			}
-			startIdx := Number(startIdx), endIdx := Number(endIdx)
-			if (arr.Length < endIdx) {
-				arr.Length := endIdx
-			}
-			Loop endIdx - startIdx + 1 {
-				arr[A_Index + startIdx - 1] := true
+			; Handle X
+			else if (IsNumber(idxRange)) {
+				arr[Number(idxRange)] := true
 			}
 		}
 	}
@@ -827,15 +926,11 @@ class ClipArray {
 		if (StrLen(headerTxt) > 0) {
 			headerTxt .= "`r`n"
 		}
-		headerTxt .= "Clipboard (" . listBounds.FullLength . ")",
+		headerTxt .= "Selected: " . this.MenuText,
 		tipText := "",
 		selText := ""
-		if (StrLen(this.Category) > 0) {
-			headerTxt .= " [" . this.Category . "]"
-		}
-		headerTxt .= ":`r`nClick to select`r`n"
 		if (listBounds.Start > 1) {
-			tipText .= "(" . listBounds.Start - 1 . ")`r`n",
+			tipText .= TextTools.ToSuperscript("(" . listBounds.Start - 1 . ")`r`n"),
 			selText .= "`r`n"
 		}
 
@@ -853,7 +948,7 @@ class ClipArray {
 		}
 
 		if (listBounds.End < listBounds.FullLength) {
-			tipText .= "(" . listBounds.FullLength - listBounds.End . ")`r`n"
+			tipText .= TextTools.ToSubscript("(" . listBounds.FullLength - listBounds.End . ")`r`n")
 		}
 
 		if (this._toolTipList.Length = 0) {
@@ -874,13 +969,13 @@ class ClipArray {
 	 * 
 	 * false: Hide tooltip if currently shown
 	 */
-	Tooltip(show := true, txtArray := [], delay := 5000) {
+	Tooltip(show := true, headerTxt := "", delay := 5000) {
 		if (show) {
 			if (!this.Length) {
 				this.AppendClipboard()
 			}
 
-			this.ReloadToolTip(txtArray)
+			this.ReloadToolTip(headerTxt)
 			this._toolTipList.Show(delay)
 		}
 		else {

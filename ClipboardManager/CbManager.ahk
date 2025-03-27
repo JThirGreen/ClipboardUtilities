@@ -108,12 +108,14 @@ class ClipboardManager {
 		this.configs.Get("clipListSelectorDelay", 50, true)
 		this.configs.Get("menuItemsCount", 5, true)
 
-		this.SelectCbArray(this.DefaultCbArrayId, false)
-		this.CbArrayMap[this.DefaultCbArrayId].Category := "Default"
 		this.LoadCbArrays()
 		this.CleanFiles()
+
 		this.configs.AddConfigAction("useClipFiles", ObjBindMethod(this, "MarkChanged"))
 		this.configs.AddConfigAction("menuItemsCount", ObjBindMethod(this, "MarkChanged"))
+		
+		this.SelectCbArray(this.DefaultCbArrayId, false)
+		this.CbArrayMap[this.DefaultCbArrayId].Category := "Default"
 	}
 
 	Init() {
@@ -207,12 +209,14 @@ class ClipboardManager {
 	 */
 	Clear(id?) {
 		if (IsSet(id) && id != this.DefaultCbArrayId && this.CbArrayMap.Has(id)) {
-			ttMessage := "Clip list (" . String(id) . ") has been deleted"
+			/** @type {ClipArray} */
+			cbArray := this.CbArrayMap[id]
+			ttMessage := "Clip list " . cbArray.Title . " has been deleted"
 			if (id = this.SelectedCbArrayId) {
 				this.SelectCbArray(this.DefaultCbArrayId, false)
-				ttMessage .= "`r`nClip list `"" . this.CbArray.Name . "`" is now selected"
+				ttMessage .= "`r`nClip list `"" . this.CbArray.Title . "`" is now selected"
 			}
-			this.CbArrayMap[id].DeleteFromFolder()
+			cbArray.DeleteFromFolder()
 			this.CbArrayMap.Delete(id)
 			AddToolTip(ttMessage, 5000)
 		}
@@ -361,8 +365,22 @@ class ClipboardManager {
 	 * @param {Integer} duration Time (in ms) to automatically hide the tooltip. Set to 0 to show indefinitely.
 	 */
 	Tooltip(show := true, duration?) {
-		this.TooltipDelayedEnd()
-		this.CbArray.Tooltip(show, "Clip history selected: " . String(this.SelectedCbArrayId), duration ?? unset)
+		this.ClearTooltipDelayed()
+		local headerTxt := "",
+		listSymbol := Chr(0x20F0)
+		for id, cbArray in this.CbArrayMap {
+			if (id != this.SelectedCbArrayId) {
+				detailsStr := "(" . cbArray.SizeText . ")"
+				if (cbArray.Category = "List") {
+					detailsStr := TextTools.InsertString(detailsStr, listSymbol, 1)
+				}
+				if (StrLen(headerTxt) > 0) {
+					headerTxt .= " "
+				}
+				headerTxt .= cbArray.Title . TextTools.ToSubscript(detailsStr)
+			}
+		}
+		this.CbArray.Tooltip(show, headerTxt, duration ?? unset)
 	}
 
 	/**
@@ -371,7 +389,7 @@ class ClipboardManager {
 	 * @param {Integer} duration Time (in ms) to automatically hide the tooltip. Set to 0 to show indefinitely.
 	 */
 	TooltipDelayed(delay := 0, duration?) {
-		this.TooltipDelayedEnd()
+		this.ClearTooltipDelayed()
 		if (delay > 0) {
 			this.DefineProp("_boundDelayedTooltip", {Value: ObjBindMethod(this, "Tooltip", true, duration ?? unset)})
 			delay := 0 - Abs(delay) ; Force negative to only run timer once
@@ -385,7 +403,7 @@ class ClipboardManager {
 	/**
 	 * Remove delayed tooltip if one exists
 	 */
-	TooltipDelayedEnd() {
+	ClearTooltipDelayed() {
 		if (this.HasOwnProp("_boundDelayedTooltip")) {
 			SetTimer(this._boundDelayedTooltip, 0)
 			this.DeleteProp("_boundDelayedTooltip")
