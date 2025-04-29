@@ -8,6 +8,7 @@
 #Include CustomClip.ahk
 
 class ClipArray {
+	static _lastAppliedClip := ""
 	/**
 	 * @type {Configurations}
 	 */
@@ -63,7 +64,6 @@ class ClipArray {
 	 * @type {Integer}
 	 */
 	Id := unset
-
 	
 	/** @type {NestedArray<CustomClip>} */
 	_clips := NestedArray()
@@ -73,9 +73,9 @@ class ClipArray {
 	 */
 	clips {
 		get {
-			if (!this._clips.Length) {
-				this.AppendClipboard()
-			}
+			;if (!this._clips.Length) {
+			;	this.AppendClipboard()
+			;}
 			return this._clips
 		}
 	}
@@ -193,6 +193,14 @@ class ClipArray {
 	IsLoaded := false
 
 	/**
+	 * Is true if the selected clip is applied to clipboard
+	 * @type {true|false}
+	 */
+	IsApplied {
+		get => ClipArray._lastAppliedClip = this.selected
+	}
+
+	/**
 	 * @type {ToolTipList}
 	 */
 	_toolTipList := ToolTipList()
@@ -214,7 +222,7 @@ class ClipArray {
 	}
 
 	/** @returns {CustomClip} */
-	__Item[index] => this._clips.Get(index)
+	__Item[index] => this._clips.Get(index, CustomClip(""))
 
 	__Enum(NumberOfVars) {
 		i := 1
@@ -491,8 +499,9 @@ class ClipArray {
 	 * Replace clipboard content with content of selected clip
 	 */
 	Apply() {
-		if (this.TotalLength) {
+		if (!this.IsApplied) {
 			this.selected.Apply()
+			ClipArray._lastAppliedClip := this.selected
 		}
 	}
 
@@ -971,9 +980,9 @@ class ClipArray {
 	 */
 	Tooltip(show := true, headerTxt := "", delay := 5000) {
 		if (show) {
-			if (!this.Length) {
-				this.AppendClipboard()
-			}
+			;if (!this.Length) {
+			;	this.AppendClipboard()
+			;}
 
 			this.ReloadToolTip(headerTxt)
 			this._toolTipList.Show(delay)

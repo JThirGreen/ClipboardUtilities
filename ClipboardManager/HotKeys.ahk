@@ -398,6 +398,7 @@ CbManagerAction() {
 		case "newSelected":
 			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 		case "pasteCurrent":
+			CbManager.Apply()
 			CbManager.PasteClip()
 		case "pastePrev":
 			CbManager.DisableCbChange()
@@ -427,6 +428,7 @@ CbManagerAction() {
 			CbManager.ReloadCbArrayMenu := true
 			CbManager.Tooltip(CbManager.CbArrayStatus != "end", 0)
 		case "end":
+			CbManager.Apply()
 			CbManager.EnableCbChange()
 		default:
 			EndAction()

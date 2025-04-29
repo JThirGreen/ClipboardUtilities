@@ -176,6 +176,22 @@ TickCount()
 }
 
 /**
+ * Wait the specified amount of time before continuing.
+ * @param {Integer} Delay The amount of time to pause (in ms)
+ * @param {Integer} Precision Precision of sleep timer (in ms)
+ */
+PreciseSleep(Delay, Precision := 1) {
+	if (Delay > 0) {
+		DllCall("Winmm\timeBeginPeriod", "UInt", Precision)  ; Affects all applications, not just this script's DllCall("Sleep"...), but does not affect SetTimer.
+		DllCall("Sleep", "UInt", Delay)  ; Must use DllCall instead of the Sleep function.
+		DllCall("Winmm\timeEndPeriod", "UInt", Precision)  ; Should be called to restore system to normal.
+	}
+	else {
+		Sleep(Delay) ; Call Sleep function in case delay value is for a special case. This allows this function to be a drop-in replacement for the built-in one.
+	}
+}
+
+/**
  * @typedef {{
  *     Start: Number,
  *     End: Number,

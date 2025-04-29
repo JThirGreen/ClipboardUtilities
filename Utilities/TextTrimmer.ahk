@@ -116,9 +116,10 @@ class TextTrimmer {
 			return
 		}
 
-		this.leadingSpacesCount := 0
+		this.leadingSpacesCount := 0,
 		this.textLength := StrLen(str),
-		this.lineCount := 0
+		this.lineCount := 0,
+		leadingNewLines := 0
 		if (this.textLength > 0) {
 			StrReplace(str, "`n", "`n", , &newLineCount)
 			this.lineCount := 1 + newLineCount
@@ -135,17 +136,22 @@ class TextTrimmer {
 
 		Loop Parse, str
 		{
-			if (charCount = 0 && A_LoopField ~= "\s")
+			if (charCount = 0 && (A_LoopField = " " || A_LoopField = "`t" || (A_LoopField ~= "\s" && this.leadingSpacesCount = 0))) {
+				; Translate leading spaces if they are at the start of the string, or come after only new lines.
+				; If any leading spaces are found, then the next new line should mark the end of the leading spaces.
 				switch (A_LoopField) {
 					case "`t":
 						this.leadingSpacesCount += TextTrimmer.spacesToTabs
 					case " ":
-						this.leadingSpacesCount++
+						++this.leadingSpacesCount
+					case "`n":
+						++leadingNewLines
 					default:
 				}
+			}
 			else {
-				if (charCount = 0 && this.leadingSpacesCount > 0) {
-					this.preTrimComponents := StrSplit(TextTrimmer.TranslateSpaces(this.leadingSpacesCount))
+				if (charCount = 0) {
+					initPreTrimComps()
 				}
 				currChar := TextTrimmer.TranslateCharacter(A_LoopField)
 
@@ -183,8 +189,28 @@ class TextTrimmer {
 			}
 			prevChar := A_LoopField
 		}
+
+		if (charCount = 0) {
+			initPreTrimComps()
+		}
+
 		if (charCount <= this.trimTextWidth) {
 			this.trimMode := ""
+		}
+		return
+
+		initPreTrimComps() {
+			preTrimStr := ""
+			if (leadingNewLines > 0) {
+				Loop leadingNewLines {
+					preTrimStr .= "`n"
+				}
+				preTrimStr := TextTrimmer.TranslateCharacter(preTrimStr)
+			}
+			if (this.leadingSpacesCount > 0) {
+				preTrimStr .= TextTrimmer.TranslateSpaces(this.leadingSpacesCount)
+			}
+			this.preTrimComponents := StrSplit(preTrimStr)
 		}
 	}
 
@@ -202,14 +228,13 @@ class TextTrimmer {
 		remainderSpaces := Mod(spacingCount, TextTrimmer.spacesToTabs)
 		spacingFormat := ""
 		
-		; Chr(0x2192) = rightwards arrow (→)
 		Loop tabEstimate {
-			spacingFormat .= Chr(0x2192)
+			spacingFormat .= "`t"
 		}
 		if (remainderSpaces > 0)
 			spacingFormat .= "{:" . remainderSpaces . "}"
 		if (StrLen(spacingFormat) > 0)
-			return Format(spacingFormat, "")
+			return TextTrimmer.TranslateCharacter(Format(spacingFormat, ""))
 		return ""
 	}
 

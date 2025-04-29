@@ -8,6 +8,7 @@
 #Include ..\Utilities\XMLTools.ahk
 #Include ..\Utilities\Clipboard.ahk
 #Include ..\Utilities\Resource.ahk
+#Include ..\Utilities\Toast.ahk
 #Include ClipArray.ahk
 
 class ClipboardManager {
@@ -218,7 +219,7 @@ class ClipboardManager {
 			}
 			cbArray.DeleteFromFolder()
 			this.CbArrayMap.Delete(id)
-			AddToolTip(ttMessage, 5000)
+			Toast(ttMessage, , 5000)
 		}
 		else {
 			SetClipboardValue("")
@@ -246,7 +247,7 @@ class ClipboardManager {
 			this.CbArrayMap.Delete(id)
 		}
 		this.SelectCbArray(this.DefaultCbArrayId, false)
-		AddToolTip("Clip lists have been cleared", 5000)
+		Toast("Clip lists have been cleared", , 5000)
 		this.MarkChanged()
 	}
 
@@ -264,12 +265,16 @@ class ClipboardManager {
 	 * @param {CustomClip} newClip Clip to replace selected
 	 */
 	ReplaceSelected(newClip := CustomClip.LoadFromClipboard()) {
+		if (!(newClip is CustomClip)) {
+			return
+		}
 		this.AppendableClip(true).Add(newClip)
 		;SetTimer(() => (TrayTip()), 2000)
-		ToolTipList(["Added to clipboard:", newClip.title], , 4, {
-			Mode: "Monitor",
-			xPercent: 100
-		}).Show()
+		;ToolTipList(["Added to clipboard:", newClip.title], , 4, {
+		;	Mode: "Monitor",
+		;	xPercent: 100
+		;}).Show()
+		Toast("Added to clipboard", newClip.title)
 		this.MarkChanged()
 	}
 
@@ -346,7 +351,7 @@ class ClipboardManager {
 		if (this.CbArray.Category = "List") {
 			if (select) {
 				this.SelectCbArray(this.DefaultCbArrayId, false)
-				AddToolTip("Default clip list selected")
+				Toast("Default clip list selected")
 			}
 			else {
 				return this.GetCbArray(this.DefaultCbArrayId)

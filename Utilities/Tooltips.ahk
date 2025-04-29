@@ -264,6 +264,10 @@ class ToolTipList {
 		}
 	}
 
+    /**
+     * Initialize and display tooltip
+     * @param {Integer} delay Time to display tooltip for (in ms)
+     */
 	Show(delay := 2000) {
 		this.RenderingStatus := "InProgress"
 		local originX, originY,

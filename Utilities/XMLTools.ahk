@@ -2,16 +2,16 @@
 #Include Clipboard.ahk
 #Include TextTools.ahk
 
-; Alt + Shift + <
+; Alt + Shift + >
 ; XML encode [< >]
-!+<::
+!+>::
 {
 	XMLTransform_cb("encode tag")
 }
 
-; Alt + Shift + >
+; Alt + Shift + <
 ; XML decode [&lt; &gt;]
-!+>::
+!+<::
 {
 	XMLTransform_cb("decode tag")
 }
